@@ -1,0 +1,31 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Удаление товара - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0">
+            <div class="card-body p-4 text-center">
+                <div class="mb-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-warning mb-3"></i>
+                    <h3>Подтверждение удаления</h3>
+                </div>
+                
+                <p class="mb-4">Вы уверены, что хотите удалить товар <strong>"{{ product.name }}"</strong>?</p>
+                <p class="text-muted mb-4">Это действие нельзя отменить. Все данные о движении товара также будут удалены.</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                        <a href="{% url 'product_list' %}" class="btn btn-secondary me-md-2">Отмена</a>
+                        <button type="submit" class="btn btn-danger">
+                            <i class="fas fa-trash me-2"></i>Удалить товар
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+<!-- stock/templates/stock/home.html -->
+{% extends 'stock/base.html' %}
+
+{% block title %}Главная - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto text-center">
+        <h1 class="mb-4">📦 Контроль остатков Wildberries</h1>
+        <p class="lead">Управляйте вашими запасами легко и эффективно</p>
+        
+        <div class="row mt-5">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">🛒 Товары</h5>
+                        <p class="card-text">Добавляйте товары с фото и артикулами WB</p>
+                        <a href="{% url 'product_add' %}" class="btn btn-primary">Добавить товар</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h5 class="card-title">📊 Остатки</h5>
+                        <p class="card-text">Следите за текущими остатками на складе</p>
+                        <a href="{% url 'stock_dashboard' %}" class="btn btn-success">Посмотреть остатки</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

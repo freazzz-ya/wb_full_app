@@ -1,0 +1,75 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Вход - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-5">
+        <div class="card border-0">
+            <div class="card-body p-5">
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold">Вход в систему</h2>
+                    <p class="text-muted">Войдите в ваш аккаунт</p>
+                </div>
+
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+
+                <form method="post" class="needs-validation" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Имя пользователя</label>
+                        <input type="text" class="form-control" id="username" name="username" required 
+                               placeholder="Введите ваш логин">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="password" class="form-label">Пароль</label>
+                        <input type="password" class="form-control" id="password" name="password" required 
+                               placeholder="Введите ваш пароль">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold">
+                        <i class="fas fa-sign-in-alt me-2"></i>Войти
+                    </button>
+                </form>
+
+                <div class="text-center mt-4">
+                    <p class="text-muted">Нет аккаунта? 
+                        <a href="{% url 'register' %}" class="text-orange text-decoration-none fw-bold">Зарегистрироваться</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control {
+    background: var(--light-black);
+    border: 1px solid var(--accent-gray);
+    color: var(--text-light);
+    padding: 12px 15px;
+    border-radius: 8px;
+}
+
+.form-control:focus {
+    background: var(--light-black);
+    border-color: var(--primary-orange);
+    color: var(--text-light);
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+}
+
+.form-label {
+    color: var(--text-light);
+    font-weight: 600;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Мои товары - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📦 Мои товары</h1>
+    <a href="{% url 'product_add' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>Добавить товар
+    </a>
+</div>
+
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<div class="row">
+    {% for product in products %}
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex align-items-start mb-3">
+                    {% if product.image %}
+                    <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                         class="rounded me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% else %}
+                    <div class="bg-dark rounded d-flex align-items-center justify-content-center me-3" 
+                         style="width: 60px; height: 60px;">
+                        <i class="fas fa-cube text-orange"></i>
+                    </div>
+                    {% endif %}
+                    <div class="flex-grow-1">
+                        <h6 class="card-title mb-1">{{ product.name }}</h6>
+                        <small class="text-muted">Артикул: {{ product.article }}</small>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between text-sm mb-1">
+                        <span>Начальный запас:</span>
+                        <strong>{{ product.initial_quantity }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between text-sm mb-1">
+                        <span>Текущий остаток:</span>
+                        <strong class="{% if product.current_stock < 10 %}text-danger{% else %}text-success{% endif %}">
+                            {{ product.current_stock }}
+                        </strong>
+                    </div>
+                    <div class="d-flex justify-content-between text-sm">
+                        <span>Дата закупки:</span>
+                        <span>{{ product.purchase_date }}</span>
+                    </div>
+                </div>
+                
+                <div class="btn-group w-100">
+                    <a href="{% url 'product_detail' product.id %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-eye"></i>
+                    </a>
+                    <a href="{% url 'product_edit' product.id %}" class="btn btn-outline-warning btn-sm">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <a href="{% url 'movement_add' product.id %}" class="btn btn-outline-info btn-sm">
+                        <i class="fas fa-exchange-alt"></i>
+                    </a>
+                    <a href="{% url 'product_delete' product.id %}" class="btn btn-outline-danger btn-sm">
+                        <i class="fas fa-trash"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="col-12">
+        <div class="card border-0 text-center py-5">
+            <div class="card-body">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h4>Товаров пока нет</h4>
+                <p class="text-muted mb-4">Добавьте первый товар чтобы начать отслеживание остатков</p>
+                <a href="{% url 'product_add' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Добавить первый товар
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}
