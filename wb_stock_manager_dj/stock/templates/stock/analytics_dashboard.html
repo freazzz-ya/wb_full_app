@@ -1,0 +1,278 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Аналитика - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📊 Аналитика за сегодня</h1>
+    <div>
+        <a href="?refresh=1" class="btn btn-outline-warning">
+            <i class="fas fa-sync-alt me-2"></i>Обновить
+        </a>
+    </div>
+</div>
+
+<!-- Информация о дате и кэше -->
+{% if analytics_data %}
+<div class="alert alert-info border-0 mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <i class="fas fa-calendar-day me-2"></i>
+            <strong>Дата:</strong> {{ analytics_data.date }}
+            <small class="text-muted ms-2">(данные кэшируются на 20 минут)</small>
+        </div>
+        <div class="text-muted">
+            <i class="fas fa-database me-1"></i>
+            Кэш: {% if not request.GET.refresh %}активен{% else %}обновлен{% endif %}
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if error %}
+<div class="alert alert-danger border-0 mb-4">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    {{ error }}
+    {% if "токен" in error %}
+    <a href="{% url 'profile' %}" class="alert-link">Перейти в профиль</a>
+    {% endif %}
+</div>
+{% endif %}
+
+{% if analytics_data and analytics_data.success %}
+<!-- Отладочная информация (можно убрать после тестирования) -->
+
+
+<!-- Карточки статистики -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="icon-wrapper mx-auto mb-3">
+                    <i class="fas fa-shopping-cart text-primary"></i>
+                </div>
+                <h3 class="text-primary">{{ analytics_data.orders.count }}</h3>
+                <h6 class="text-muted mb-1">Всего заказов</h6>
+                <p class="mb-0 text-light">{{ analytics_data.orders.sum|floatformat:0 }} руб.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="icon-wrapper mx-auto mb-3">
+                    <i class="fas fa-check-circle text-success"></i>
+                </div>
+                <h3 class="text-success">{{ analytics_data.sales.count }}</h3>
+                <h6 class="text-muted mb-1">Реальных выкупов</h6>
+                <p class="mb-0 text-light">{{ analytics_data.sales.sum|floatformat:0 }} руб.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="icon-wrapper mx-auto mb-3">
+                    <i class="fas fa-times-circle text-danger"></i>
+                </div>
+                <h3 class="text-danger">{{ analytics_data.cancellations.count }}</h3>
+                <h6 class="text-muted mb-1">Отказов</h6>
+                <p class="mb-0 text-light">{{ analytics_data.cancellations.sum|floatformat:0 }} руб.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="icon-wrapper mx-auto mb-3">
+                    <i class="fas fa-exchange-alt text-warning"></i>
+                </div>
+                <h3 class="text-warning">{{ analytics_data.returns.count }}</h3>
+                <h6 class="text-muted mb-1">Возвратов</h6>
+                <p class="mb-0 text-light">{{ analytics_data.returns.sum|floatformat:0 }} руб.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Показатели эффективности -->
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-3">📈 Конверсия в выкупы</h6>
+                <div class="display-4 text-success mb-2">
+                    {{ analytics_data.conversion_rate|floatformat:1 }}%
+                </div>
+                <small class="text-muted">Процент заказов, превратившихся в выкупы</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <h6 class="card-title mb-3">📉 Процент отказов</h6>
+                <div class="display-4 text-danger mb-2">
+                    {{ analytics_data.cancellation_rate|floatformat:1 }}%
+                </div>
+                <small class="text-muted">Процент заказов, которые были отменены</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Детализация -->
+<div class="row">
+    <!-- Последние заказы -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h6 class="card-title mb-3">
+                    <i class="fas fa-shopping-cart me-2"></i>Последние заказы
+                    <span class="badge bg-primary ms-2">{{ analytics_data.orders.data|length }}</span>
+                </h6>
+                {% if analytics_data.orders.data %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th class="text-end">Цена</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in analytics_data.orders.data %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <small class="d-block text-truncate" style="max-width: 150px;" 
+                                               title="{{ order.name }}">
+                                            {{ order.name }}
+                                        </small>
+                                        <small class="text-muted">Арт: {{ order.article }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-primary">{{ order.price|floatformat:0 }} руб.</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">Нет данных о заказах</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Последние выкупы -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h6 class="card-title mb-3">
+                    <i class="fas fa-check-circle me-2"></i>Последние выкупы
+                    <span class="badge bg-success ms-2">{{ analytics_data.sales.data|length }}</span>
+                </h6>
+                {% if analytics_data.sales.data %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th class="text-end">Цена</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for sale in analytics_data.sales.data %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <small class="d-block text-truncate" style="max-width: 150px;" 
+                                               title="{{ sale.name }}">
+                                            {{ sale.name }}
+                                        </small>
+                                        <small class="text-muted">Арт: {{ sale.article }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-success">{{ sale.price|floatformat:0 }} руб.</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">Нет данных о выкупах</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Отказы (показываем только если они есть) -->
+{% if analytics_data.cancellations.count > 0 %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card border-0">
+            <div class="card-body">
+                <h6 class="card-title mb-3 text-danger">
+                    <i class="fas fa-times-circle me-2"></i>Отказы
+                    <span class="badge bg-danger ms-2">{{ analytics_data.cancellations.data|length }}</span>
+                </h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th class="text-end">Цена</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for cancellation in analytics_data.cancellations.data %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        <small class="d-block text-truncate" style="max-width: 150px;" 
+                                               title="{{ cancellation.name }}">
+                                            {{ cancellation.name }}
+                                        </small>
+                                        <small class="text-muted">Арт: {{ cancellation.article }}</small>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-danger">{{ cancellation.price|floatformat:0 }} руб.</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% elif analytics_data and not analytics_data.success %}
+<div class="alert alert-warning border-0">
+    <i class="fas fa-exclamation-triangle me-2"></i>
+    Не удалось получить данные аналитики. Проверьте API токен в профиле.
+</div>
+{% endif %}
+
+{% if not analytics_data and not error %}
+<div class="card border-0 text-center py-5">
+    <div class="card-body">
+        <i class="fas fa-chart-line fa-3x text-muted mb-3"></i>
+        <h4>Аналитика не настроена</h4>
+        <p class="text-muted mb-4">Добавьте API токен Wildberries в профиле для доступа к аналитике</p>
+        <a href="{% url 'profile' %}" class="btn btn-primary">
+            <i class="fas fa-cog me-2"></i>Настроить профиль
+        </a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

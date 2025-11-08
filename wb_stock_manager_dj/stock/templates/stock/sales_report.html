@@ -1,0 +1,123 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Отчет по продажам - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📈 Отчет по продажам</h1>
+    <div>
+        <a href="{% url 'analytics_dashboard' %}" class="btn btn-outline-secondary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Назад к дашборду
+        </a>
+        <a href="?period=7" class="btn btn-outline-primary">7 дней</a>
+        <a href="?period=30" class="btn btn-outline-primary">30 дней</a>
+    </div>
+</div>
+
+{% if error %}
+<div class="alert alert-danger border-0">
+    <i class="fas fa-exclamation-triangle me-2"></i>{{ error }}
+</div>
+{% endif %}
+
+{% if report_data and report_data.success %}
+<div class="row">
+    <div class="col-12 mb-4">
+        <div class="card border-0">
+            <div class="card-body">
+                <h5 class="card-title">📊 Сводка за {{ report_data.period_days }} дней</h5>
+                <div class="row text-center">
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-primary mb-1">{{ report_data.orders.count }}</h4>
+                            <small class="text-muted">Заказов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-success mb-1">{{ report_data.sales.count }}</h4>
+                            <small class="text-muted">Выкупов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-danger mb-1">{{ report_data.cancellations.count }}</h4>
+                            <small class="text-muted">Отказов</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <div class="border rounded p-3">
+                            <h4 class="text-warning mb-1">{{ report_data.returns.count }}</h4>
+                            <small class="text-muted">Возвратов</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Детальная информация -->
+<div class="row">
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h6 class="card-title mb-3">💰 Финансовые показатели</h6>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item bg-transparent d-flex justify-content-between">
+                        <span>Общая сумма заказов:</span>
+                        <strong class="text-primary">{{ report_data.orders.sum|floatformat:2 }} руб.</strong>
+                    </div>
+                    <div class="list-group-item bg-transparent d-flex justify-content-between">
+                        <span>Сумма выкупов:</span>
+                        <strong class="text-success">{{ report_data.sales.sum|floatformat:2 }} руб.</strong>
+                    </div>
+                    <div class="list-group-item bg-transparent d-flex justify-content-between">
+                        <span>Потери от отказов:</span>
+                        <strong class="text-danger">{{ report_data.cancellations.sum|floatformat:2 }} руб.</strong>
+                    </div>
+                    <div class="list-group-item bg-transparent d-flex justify-content-between">
+                        <span>Сумма возвратов:</span>
+                        <strong class="text-warning">{{ report_data.returns.sum|floatformat:2 }} руб.</strong>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h6 class="card-title mb-3">📈 Эффективность</h6>
+                <div class="list-group list-group-flush">
+                    <div class="list-group-item bg-transparent">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Конверсия в выкупы:</span>
+                            <strong>{{ report_data.conversion_rate|floatformat:1 }}%</strong>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-success" style="width: {{ report_data.conversion_rate }}%"></div>
+                        </div>
+                    </div>
+                    <div class="list-group-item bg-transparent">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span>Процент отказов:</span>
+                            <strong>{{ report_data.cancellation_rate|floatformat:1 }}%</strong>
+                        </div>
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-danger" style="width: {{ report_data.cancellation_rate }}%"></div>
+                        </div>
+                    </div>
+                    <div class="list-group-item bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <span>Выкуплено заказов:</span>
+                            <strong>{{ report_data.sales.count }} из {{ report_data.orders.count }}</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

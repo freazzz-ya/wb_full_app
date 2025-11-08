@@ -1,0 +1,261 @@
+[
+  {
+    "model": "stock.product",
+    "pk": 1,
+    "fields": {
+      "user": 1,
+      "name": "Крючки китай 4",
+      "article": "360788540",
+      "initial_quantity": 200,
+      "image": "products/Главная_1_8VMqg66.png",
+      "purchase_date": "2025-03-10",
+      "created_at": "2025-11-03T21:01:52.875Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 2,
+    "fields": {
+      "user": 1,
+      "name": "крючки китай 4 черные дешевые",
+      "article": "361897293",
+      "initial_quantity": 200,
+      "image": "products/Главная_1_1bnKcM8.png",
+      "purchase_date": "2025-03-10",
+      "created_at": "2025-11-03T21:04:22.584Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 3,
+    "fields": {
+      "user": 1,
+      "name": "Коврик черный",
+      "article": "382936452",
+      "initial_quantity": 200,
+      "image": "products/Главная.png",
+      "purchase_date": "2025-03-10",
+      "created_at": "2025-11-03T21:10:35.051Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 4,
+    "fields": {
+      "user": 1,
+      "name": "Коврик в точку",
+      "article": "364671540",
+      "initial_quantity": 200,
+      "image": "products/Главная_2.png",
+      "purchase_date": "2025-03-10",
+      "created_at": "2025-11-03T21:11:23.062Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 5,
+    "fields": {
+      "user": 1,
+      "name": "Крючки ракушки 4 шт",
+      "article": "439019942",
+      "initial_quantity": 160,
+      "image": "products/Главная_4.png",
+      "purchase_date": "2025-05-10",
+      "created_at": "2025-11-03T21:32:56.031Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 6,
+    "fields": {
+      "user": 1,
+      "name": "Чехол Airpods pro пончик",
+      "article": "425542423",
+      "initial_quantity": 160,
+      "image": "products/Чехол_светлый.png",
+      "purchase_date": "2025-05-10",
+      "created_at": "2025-11-03T21:35:30.966Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 7,
+    "fields": {
+      "user": 1,
+      "name": "Чехол Airpods pro dont",
+      "article": "425577327",
+      "initial_quantity": 160,
+      "image": "products/Чехол_темный.png",
+      "purchase_date": "2025-05-10",
+      "created_at": "2025-11-03T21:36:47.732Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 8,
+    "fields": {
+      "user": 1,
+      "name": "Крючки длинные черные 4",
+      "article": "420987764",
+      "initial_quantity": 160,
+      "image": "products/Главная_tAJ3Ec7.png",
+      "purchase_date": "2025-05-10",
+      "created_at": "2025-11-03T21:38:26.983Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 9,
+    "fields": {
+      "user": 1,
+      "name": "Крабики маленькие 24",
+      "article": "421060912",
+      "initial_quantity": 160,
+      "image": "products/Главная_3.png",
+      "purchase_date": "2025-05-10",
+      "created_at": "2025-11-03T21:39:50.689Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 10,
+    "fields": {
+      "user": 1,
+      "name": "Заколка большая золотистая",
+      "article": "555781697",
+      "initial_quantity": 60,
+      "image": "products/O1CN014OV0hy1Bs33WUsNg2_0-0-cib.jpg",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:17:13.738Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 11,
+    "fields": {
+      "user": 1,
+      "name": "Заколка большая черная",
+      "article": "0",
+      "initial_quantity": 60,
+      "image": "products/O1CN01rZitcn28qjDuVTC1A_2888337984-0-cib.jpg",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:18:24.987Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 12,
+    "fields": {
+      "user": 1,
+      "name": "Брошь тюльпан",
+      "article": "526757105",
+      "initial_quantity": 80,
+      "image": "products/Главный.png",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:20:10.603Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 13,
+    "fields": {
+      "user": 1,
+      "name": "Краб золотой большой",
+      "article": "528118924",
+      "initial_quantity": 80,
+      "image": "products/Главная_крабики.png",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:21:36.608Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 14,
+    "fields": {
+      "user": 1,
+      "name": "Заколки цветочки клик 3 шт",
+      "article": "526786212",
+      "initial_quantity": 80,
+      "image": "products/1.webp",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:25:10.713Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 15,
+    "fields": {
+      "user": 1,
+      "name": "Чокер бабочка",
+      "article": "555662544",
+      "initial_quantity": 80,
+      "image": "products/1_1.webp",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:28:21.649Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 16,
+    "fields": {
+      "user": 1,
+      "name": "Браслет клиф",
+      "article": "526779555",
+      "initial_quantity": 80,
+      "image": "products/Главный_1.png",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:29:25.915Z"
+    }
+  },
+  {
+    "model": "stock.product",
+    "pk": 17,
+    "fields": {
+      "user": 1,
+      "name": "Чехол лапки",
+      "article": "530773877",
+      "initial_quantity": 70,
+      "image": "products/O1CN01s3Ju3O1UFYC7EMaJv_2208119382488-0-cib.jpg",
+      "purchase_date": "2025-09-10",
+      "created_at": "2025-11-03T22:32:19.103Z"
+    }
+  }
+]
+[
+  {
+    "model": "stock.stockmovement",
+    "pk": 1,
+    "fields": {
+      "product": 1,
+      "movement_type": "out",
+      "quantity": 36,
+      "date": "2025-04-10",
+      "notes": "",
+      "created_at": "2025-11-03T21:19:22.242Z"
+    }
+  },
+  {
+    "model": "stock.stockmovement",
+    "pk": 2,
+    "fields": {
+      "product": 2,
+      "movement_type": "out",
+      "quantity": 27,
+      "date": "2025-04-10",
+      "notes": "",
+      "created_at": "2025-11-03T21:20:05.742Z"
+    }
+  },
+  {
+    "model": "stock.stockmovement",
+    "pk": 3,
+    "fields": {
+      "product": 4,
+      "movement_type": "out",
+      "quantity": 7,
+      "date": "2025-04-10",
+      "notes": "",
+      "created_at": "2025-11-03T21:20:27.616Z"
+    }
+  }
+]

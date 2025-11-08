@@ -41,9 +41,14 @@ class UserProfile(models.Model):
         return f"Профиль {self.user.username}"
 
     def set_api_token(self, token):
-        """Шифруем и сохраняем API токен"""
-        if token:
-            encrypted_token = encrypt_token(token)
+        """Шифруем и сохраняем API токен только если передан новый токен"""
+        if token and token.strip():  # Проверяем что токен не пустой
+            # Если токен уже существует и совпадает с текущим - не делаем ничего
+            current_token = self.get_api_token()
+            if current_token and current_token == token.strip():
+                return
+                
+            encrypted_token = encrypt_token(token.strip())
             self.wb_api_token = encrypted_token
             self.wb_api_token_encrypted = True
             self.save()
@@ -56,6 +61,10 @@ class UserProfile(models.Model):
             except:
                 return None
         return None
+
+    def has_api_token(self):
+        """Проверяем, установлен ли API токен"""
+        return bool(self.wb_api_token and self.wb_api_token_encrypted)
     
 
 class Product(models.Model):

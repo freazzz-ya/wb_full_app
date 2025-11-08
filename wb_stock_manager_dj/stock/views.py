@@ -3,11 +3,12 @@ from django.contrib.auth import login, authenticate
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
 from django.contrib import messages
-from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from datetime import datetime, timedelta
 
 from .models import Product, UserProfile, StockMovement
 from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm
+from .wb_parser import get_wb_simple_service, clear_wb_cache
 
 
 def home(request):
@@ -60,7 +61,7 @@ def profile(request):
     
     if request.method == 'POST':
         if 'profile_info' in request.POST:
-            profile_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)  # Добавляем request.FILES
+            profile_form = UserProfileForm(request.POST, request.FILES, instance=user_profile)
             token_form = APITokenForm()
             if profile_form.is_valid():
                 profile_form.save()
@@ -75,6 +76,7 @@ def profile(request):
                 return redirect('profile')
     else:
         profile_form = UserProfileForm(instance=user_profile)
+        # Не показываем текущий токен в форме
         token_form = APITokenForm()
     
     # Получаем статистику товаров
@@ -282,3 +284,119 @@ def product_detail(request, product_id):
         'movements': movements,
         'page_title': f'Товар - {product.name}'
     })
+
+@login_required
+def analytics_dashboard(request):
+    """Дашборд аналитики Wildberries за сегодня с кэшированием"""
+    # Проверяем, не нужно ли обновить данные
+    refresh = request.GET.get('refresh')
+    if refresh:
+        clear_wb_cache(request.user)
+    
+    service = get_wb_simple_service(request.user)
+    
+    analytics_data = None
+    error = None
+    
+    if service:
+        try:
+            # Получаем данные за сегодня с кэшированием
+            analytics_data = service.analyze_today_data(request.user.id)
+            if not analytics_data['success']:
+                error = analytics_data.get('error', 'Не удалось получить данные аналитики')
+        except Exception as e:
+            error = f"Ошибка при получении данных: {str(e)}"
+            analytics_data = {
+                'success': False,
+                'date': datetime.now().strftime("%d.%m.%Y"),
+                'orders': {'count': 0, 'sum': 0, 'data': []},
+                'sales': {'count': 0, 'sum': 0, 'data': []},
+                'cancellations': {'count': 0, 'sum': 0, 'data': []},
+                'returns': {'count': 0, 'sum': 0, 'data': []},
+                'conversion_rate': 0,
+                'cancellation_rate': 0
+            }
+    else:
+        error = "API токен не настроен. Добавьте токен в профиле."
+        analytics_data = {
+            'success': False,
+            'date': datetime.now().strftime("%d.%m.%Y"),
+            'orders': {'count': 0, 'sum': 0, 'data': []},
+            'sales': {'count': 0, 'sum': 0, 'data': []},
+            'cancellations': {'count': 0, 'sum': 0, 'data': []},
+            'returns': {'count': 0, 'sum': 0, 'data': []},
+            'conversion_rate': 0,
+            'cancellation_rate': 0
+        }
+    
+    context = {
+        'page_title': 'Аналитика за сегодня',
+        'analytics_data': analytics_data,
+        'error': error
+    }
+    return render(request, 'stock/analytics_dashboard.html', context)
+
+@login_required
+def sales_report(request):
+    """Детальный отчет по продажам"""
+    parser = get_wb_parser_for_user(request.user)
+    
+    period = request.GET.get('period', '7')
+    try:
+        period_days = int(period)
+    except:
+        period_days = 7
+    
+    report_data = None
+    error = None
+    
+    if parser:
+        try:
+            report_data = parser.analyze_period_data(period_days)
+        except Exception as e:
+            error = f"Ошибка при получении отчета: {str(e)}"
+    else:
+        error = "API токен не настроен. Добавьте токен в профиле."
+    
+    context = {
+        'page_title': 'Отчет по продажам',
+        'report_data': report_data,
+        'error': error,
+        'period_days': period_days
+    }
+    return render(request, 'stock/sales_report.html', context)
+
+@login_required
+def product_analytics(request):
+    """Аналитика по товарам"""
+    user_products = Product.objects.filter(user=request.user)
+    
+    # Статистика по товарам
+    total_products = user_products.count()
+    products_in_stock = len([p for p in user_products if p.current_stock > 0])
+    products_low_stock = len([p for p in user_products if 0 < p.current_stock < 10])
+    products_out_of_stock = len([p for p in user_products if p.current_stock == 0])
+    
+    # Товары с самым долгим сроком на складе
+    old_products = sorted(user_products, key=lambda x: x.days_in_stock, reverse=True)[:5]
+    
+    # Товары с малым остатком
+    low_stock_products = [p for p in user_products if 0 < p.current_stock < 5]
+    
+    context = {
+        'page_title': 'Аналитика товаров',
+        'total_products': total_products,
+        'products_in_stock': products_in_stock,
+        'products_low_stock': products_low_stock,
+        'products_out_of_stock': products_out_of_stock,
+        'old_products': old_products,
+        'low_stock_products': low_stock_products,
+    }
+    return render(request, 'stock/product_analytics.html', context)
+
+def documentation(request):
+    """Страница документации"""
+    context = {
+        'page_title': 'Документация'
+    }
+    return render(request, 'stock/documentation.html', context)

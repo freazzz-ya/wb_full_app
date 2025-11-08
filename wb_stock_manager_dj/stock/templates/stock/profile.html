@@ -3,34 +3,59 @@
 {% block title %}Профиль - WB Stock Manager{% endblock %}
 
 {% block content %}
-            <div class="row">
-                <!-- Левая колонка - информация профиля -->
-                <div class="col-lg-4 mb-4">
-                    <div class="card border-0 h-100">
-                        <div class="card-body">
-            <div class="text-center mb-4">
-                <div class="position-relative d-inline-block">
-                    {% if user_profile.avatar %}
-                        <img src="{{ user_profile.avatar.url }}" alt="Аватар" 
-                            class="rounded-circle border border-orange" 
-                            style="width: 120px; height: 120px; object-fit: cover;">
-                    {% else %}
-                        <div class="rounded-circle bg-dark border border-orange d-flex align-items-center justify-content-center" 
-                            style="width: 120px; height: 120px;">
-                            <i class="fas fa-user fa-3x text-orange"></i>
-                        </div>
+<div class="row">
+    <!-- Левая колонка - информация профиля -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="position-relative d-inline-block">
+                        {% if user_profile.avatar %}
+                            <img src="{{ user_profile.avatar.url }}" alt="Аватар" 
+                                class="rounded-circle border border-orange" 
+                                style="width: 120px; height: 120px; object-fit: cover;">
+                        {% else %}
+                            <div class="rounded-circle bg-dark border border-orange d-flex align-items-center justify-content-center" 
+                                style="width: 120px; height: 120px;">
+                                <i class="fas fa-user fa-3x text-orange"></i>
+                            </div>
+                        {% endif %}
+                        <span class="position-absolute bottom-0 end-0 bg-success rounded-circle border border-2 border-dark" 
+                            style="width: 20px; height: 20px;"></span>
+                    </div>
+                    <h4 class="mt-3 mb-1">{{ user.username }}</h4>
+                    <p class="text-muted">{{ user.email }}</p>
+                    {% if user_profile.company_name %}
+                        <p class="text-orange fw-bold">
+                            <i class="fas fa-building me-2"></i>{{ user_profile.company_name }}
+                        </p>
                     {% endif %}
-                    <span class="position-absolute bottom-0 end-0 bg-success rounded-circle border border-2 border-dark" 
-                        style="width: 20px; height: 20px;"></span>
                 </div>
-                <h4 class="mt-3 mb-1">{{ user.username }}</h4>
-                <p class="text-muted">{{ user.email }}</p>
-                {% if user_profile.company_name %}
-                    <p class="text-orange fw-bold">
-                        <i class="fas fa-building me-2"></i>{{ user_profile.company_name }}
-                    </p>
-                {% endif %}
-            </div>
+
+                <!-- Контактная информация -->
+                <div class="mb-4">
+                    <h6 class="text-muted mb-3"><i class="fas fa-address-card me-2"></i>Контактная информация</h6>
+                    <div class="bg-dark rounded p-3">
+                        {% if user_profile.contact_email %}
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-envelope text-orange me-2"></i>
+                                <small class="text-light">{{ user_profile.contact_email }}</small>
+                            </div>
+                        {% endif %}
+                        {% if user_profile.company_name %}
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-building text-orange me-2"></i>
+                                <small class="text-light">{{ user_profile.company_name }}</small>
+                            </div>
+                        {% endif %}
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-bell text-orange me-2"></i>
+                            <small class="text-light">
+                                Уведомления: {{ user_profile.notification_enabled|yesno:"Включены,Отключены" }}
+                            </small>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Статистика пользователя -->
                 <div class="mb-4">
@@ -90,29 +115,82 @@
             {% endfor %}
         {% endif %}
 
-        <!-- Форма профиля -->
+        <!-- Кнопка редактирования профиля -->
         <div class="card border-0 mb-4">
+            <div class="card-body text-center py-5">
+                <i class="fas fa-user-edit fa-3x text-orange mb-3"></i>
+                <h4 class="text-light mb-3">Управление профилем</h4>
+                <p class="text-muted mb-4">Измените основную информацию, контактные данные и настройки уведомлений</p>
+                <button type="button" class="btn btn-primary btn-lg" onclick="toggleProfileForm()">
+                    <i class="fas fa-edit me-2"></i>Редактировать профиль
+                </button>
+            </div>
+        </div>
+
+        <!-- Форма профиля (скрыта по умолчанию) -->
+        <div class="card border-0 mb-4" id="profileForm" style="display: none;">
             <div class="card-header bg-transparent border-0 pb-0">
-                <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Основная информация</h5>
+                <h5 class="mb-0"><i class="fas fa-user-edit me-2"></i>Редактирование профиля</h5>
             </div>
             <div class="card-body">
-                <form method="post" enctype="multipart/form-data">  <!-- Добавляем enctype -->
+                <form method="post" enctype="multipart/form-data" id="profileEditForm">
                     {% csrf_token %}
                     <input type="hidden" name="profile_info" value="1">
                     
-                    {% for field in profile_form %}
-                    <div class="mb-3">
-                        <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
-                        {{ field }}
-                        {% if field.help_text %}
-                            <small class="form-text text-muted">{{ field.help_text }}</small>
-                        {% endif %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <!-- Основные поля -->
+                            {% for field in profile_form %}
+                                {% if field.name != 'avatar' and field.name != 'notification_enabled' %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                    {% if field.help_text %}
+                                        <small class="form-text text-muted">{{ field.help_text }}</small>
+                                    {% endif %}
+                                    {% if field.errors %}
+                                        <div class="text-danger small">
+                                            {{ field.errors }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <!-- Аватар и настройки -->
+                            <div class="mb-3">
+                                <label for="id_avatar" class="form-label">Аватар профиля</label>
+                                {{ profile_form.avatar }}
+                                {% if user_profile.avatar %}
+                                    <div class="mt-2">
+                                        <small class="text-muted">Текущий аватар:</small>
+                                        <img src="{{ user_profile.avatar.url }}" alt="Текущий аватар" 
+                                             class="rounded mt-1" style="width: 80px; height: 80px; object-fit: cover;">
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="mb-3">
+                                <div class="form-check form-switch">
+                                    {{ profile_form.notification_enabled }}
+                                    <label class="form-check-label" for="id_notification_enabled">
+                                        Уведомления включены
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    {% endfor %}
 
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-save me-2"></i>Сохранить изменения
-                    </button>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Сохранить изменения
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="toggleProfileForm()">
+                            <i class="fas fa-times me-2"></i>Отмена
+                        </button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -127,6 +205,9 @@
                     <i class="fas fa-info-circle me-2"></i>
                     <strong>Ваш API токен безопасно зашифрован</strong><br>
                     Токен хранится в зашифрованном виде и может быть использован для автоматической синхронизации с Wildberries.
+                    {% if user_profile.has_api_token %}
+                    <br><span class="text-success"><i class="fas fa-check-circle me-1"></i>Токен установлен</span>
+                    {% endif %}
                 </div>
 
                 <form method="post">
@@ -134,57 +215,78 @@
                     <input type="hidden" name="api_token" value="1">
                     
                     <div class="mb-3">
-                        <label for="id_wb_api_token" class="form-label">API токен Wildberries</label>
+                        <label for="id_wb_api_token" class="form-label">
+                            {% if user_profile.has_api_token %}
+                                Обновить API токен Wildberries
+                            {% else %}
+                                API токен Wildberries
+                            {% endif %}
+                        </label>
                         {{ token_form.wb_api_token }}
                         <small class="form-text text-muted">
-                            Токен можно получить в личном кабинете продавца Wildberries
+                            {% if user_profile.has_api_token %}
+                                Оставьте поле пустым, чтобы сохранить текущий токен
+                            {% else %}
+                                Токен можно получить в личном кабинете продавца Wildberries
+                            {% endif %}
                         </small>
                     </div>
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-lock me-2"></i>Сохранить токен
-                        </button>
-                        
-                        {% if user_profile.get_api_token %}
-                        <button type="button" class="btn btn-outline-success" onclick="showToken()">
-                            <i class="fas fa-eye me-2"></i>Показать токен
-                        </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-lock me-2"></i>
+                        {% if user_profile.has_api_token %}
+                            Обновить токен
+                        {% else %}
+                            Сохранить токен
                         {% endif %}
-                    </div>
+                    </button>
                 </form>
-
-                {% if user_profile.get_api_token %}
-                <div id="tokenDisplay" class="mt-3" style="display: none;">
-                    <div class="alert alert-warning border-0">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        <strong>Ваш токен:</strong><br>
-                        <code class="d-block mt-2 p-2 bg-dark rounded">{{ user_profile.get_api_token }}</code>
-                        <small class="text-muted">Сохраните токен в безопасном месте</small>
-                    </div>
-                </div>
-                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
 <script>
-function showToken() {
-    document.getElementById('tokenDisplay').style.display = 'block';
+function toggleProfileForm() {
+    const form = document.getElementById('profileForm');
+    const isVisible = form.style.display === 'block';
+    
+    form.style.display = isVisible ? 'none' : 'block';
+    
+    // Плавная прокрутка к форме
+    if (!isVisible) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
 }
 
 // Стили для форм
 document.addEventListener('DOMContentLoaded', function() {
     const inputs = document.querySelectorAll('input, select, textarea');
     inputs.forEach(input => {
-        if (!input.classList.contains('btn')) {
+        if (!input.classList.contains('btn') && !input.classList.contains('form-check-input')) {
             input.classList.add('form-control');
             input.style.background = 'var(--light-black)';
             input.style.border = '1px solid var(--accent-gray)';
             input.style.color = 'var(--text-light)';
         }
     });
+    
+    // Стили для формы редактирования при загрузке
+    const formInputs = document.querySelectorAll('#profileForm input, #profileForm select, #profileForm textarea');
+    formInputs.forEach(input => {
+        if (!input.classList.contains('btn') && !input.classList.contains('form-check-input')) {
+            input.classList.add('form-control');
+        }
+    });
+});
+
+// Показываем форму если есть ошибки валидации
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('profileEditForm');
+    const errors = form.querySelector('.text-danger');
+    if (errors) {
+        document.getElementById('profileForm').style.display = 'block';
+    }
 });
 </script>
 
@@ -209,6 +311,21 @@ document.addEventListener('DOMContentLoaded', function() {
 .form-check-input:checked {
     background-color: var(--primary-orange);
     border-color: var(--primary-orange);
+}
+
+.form-switch .form-check-input {
+    width: 3em;
+    height: 1.5em;
+}
+
+#profileForm {
+    transition: all 0.3s ease-in-out;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 1.1rem;
+    border-radius: 10px;
 }
 </style>
 {% endblock %}

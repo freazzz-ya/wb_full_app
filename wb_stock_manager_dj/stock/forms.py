@@ -42,24 +42,22 @@ class UserProfileForm(forms.ModelForm):
 
 
 class APITokenForm(forms.Form):
-    """Отдельная форма для API токена"""
     wb_api_token = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Введите ваш API токен Wildberries'
+            'placeholder': 'Введите ваш API токен Wildberries',
+            'autocomplete': 'new-password'
         }),
+        label="API токен Wildberries",
         required=False,
-        label='API Токен Wildberries',
-        max_length=500
+        help_text="Токен будет зашифрован и безопасно сохранен"
     )
-    
-    def save(self, profile):
-        """Сохраняем токен в профиль"""
+
+    def save(self, user_profile):
         token = self.cleaned_data.get('wb_api_token')
-        if token:
-            profile.set_api_token(token)
-            profile.save()
-        return profile
+        if token:  # Сохраняем только если передан новый токен
+            user_profile.set_api_token(token)
+        # Если поле пустое - не делаем ничего (не стираем существующий токен)
 
 class ProductForm(forms.ModelForm):
     """Форма для добавления/редактирования товара"""

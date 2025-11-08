@@ -1,0 +1,116 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Аналитика товаров - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📦 Аналитика товаров</h1>
+    <a href="{% url 'product_list' %}" class="btn btn-outline-primary">
+        <i class="fas fa-cubes me-2"></i>Все товары
+    </a>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <h3 class="text-primary">{{ total_products }}</h3>
+                <h6 class="text-muted">Всего товаров</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <h3 class="text-success">{{ products_in_stock }}</h3>
+                <h6 class="text-muted">В наличии</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <h3 class="text-warning">{{ products_low_stock }}</h3>
+                <h6 class="text-muted">Мало осталось</h6>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <h3 class="text-danger">{{ products_out_of_stock }}</h3>
+                <h6 class="text-muted">Нет в наличии</h6>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Товары с малым остатком -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h6 class="card-title mb-3">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>
+                    Товары с малым остатком
+                    <span class="badge bg-warning ms-2">{{ low_stock_products|length }}</span>
+                </h6>
+                {% if low_stock_products %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <tbody>
+                            {% for product in low_stock_products %}
+                            <tr>
+                                <td class="text-truncate" style="max-width: 150px;">
+                                    <small>{{ product.name }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-warning">{{ product.current_stock }} шт.</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">Нет товаров с малым остатком</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Долго на складе -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h6 class="card-title mb-3">
+                    <i class="fas fa-clock text-info me-2"></i>
+                    Долго на складе
+                    <span class="badge bg-info ms-2">{{ old_products|length }}</span>
+                </h6>
+                {% if old_products %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-borderless">
+                        <tbody>
+                            {% for product in old_products %}
+                            <tr>
+                                <td class="text-truncate" style="max-width: 150px;">
+                                    <small>{{ product.name }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <span class="badge bg-info">{{ product.days_in_stock }} дн.</span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted text-center py-3">Нет данных</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
