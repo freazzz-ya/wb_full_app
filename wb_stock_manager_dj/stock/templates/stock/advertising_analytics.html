@@ -1,0 +1,188 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Аналитика рекламы - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📈 {{ page_title }}</h1>
+    <div>
+        <a href="{% url 'advertising_dashboard' %}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Назад
+        </a>
+        <a href="{% url 'campaign_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Новая кампания
+        </a>
+    </div>
+</div>
+
+<!-- Общая статистика -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-bullhorn fa-2x text-primary mb-3"></i>
+                <h3 class="text-light">{{ total_campaigns }}</h3>
+                <p class="text-muted mb-0">Всего кампаний</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-ruble-sign fa-2x text-warning mb-3"></i>
+                <h3 class="text-light">{{ total_spent|floatformat:2 }} ₽</h3>
+                <p class="text-muted mb-0">Всего потрачено</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-shopping-cart fa-2x text-success mb-3"></i>
+                <h3 class="text-light">{{ total_orders }}</h3>
+                <p class="text-muted mb-0">Всего заказов</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body text-center">
+                <i class="fas fa-mouse-pointer fa-2x text-info mb-3"></i>
+                <h3 class="text-light">{{ total_clicks }}</h3>
+                <p class="text-muted mb-0">Всего кликов</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Самые эффективные кампании -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-trophy me-2"></i>Самые эффективные кампании (по CPO)</h5>
+            </div>
+            <div class="card-body">
+                {% if effective_campaigns %}
+                    {% for item in effective_campaigns %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+                        <div>
+                            <h6 class="mb-1">{{ item.campaign.name }}</h6>
+                            <small class="text-muted">
+                                {{ item.campaign.get_campaign_type_display }} • 
+                                {{ item.campaign.total_orders }} заказов
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold text-success">{{ item.cpo|floatformat:2 }} ₽ CPO</div>
+                            <small class="text-muted">ROI: {{ item.roi|floatformat:1 }}%</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-chart-line fa-3x mb-3"></i>
+                        <p>Нет данных для анализа</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика по типам -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>Сравнение типов кампаний</h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="mb-4">
+                            <i class="fas fa-search fa-2x text-primary mb-2"></i>
+                            <h4>{{ search_campaigns_count }}</h4>
+                            <p class="text-muted mb-1">Поисковые кампании</p>
+                            <small class="text-success">{{ search_campaigns_orders }} заказов</small>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="mb-4">
+                            <i class="fas fa-gavel fa-2x text-warning mb-2"></i>
+                            <h4>{{ auction_campaigns_count }}</h4>
+                            <p class="text-muted mb-1">Аукционные кампании</p>
+                            <small class="text-success">{{ auction_campaigns_orders }} заказов</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="campaignTypeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Рекомендации -->
+<div class="card border-0">
+    <div class="card-header bg-dark border-0">
+        <h5 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Рекомендации</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4 mb-3">
+                <div class="card bg-dark border-primary">
+                    <div class="card-body">
+                        <h6><i class="fas fa-bullseye text-primary me-2"></i>Оптимизация ставок</h6>
+                        <p class="small text-muted mb-0">Снижайте ставки для кампаний с CPO выше 1000 рублей</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-dark border-success">
+                    <div class="card-body">
+                        <h6><i class="fas fa-chart-line text-success me-2"></i>Масштабирование</h6>
+                        <p class="small text-muted mb-0">Увеличивайте бюджеты для кампаний с CPO ниже 500 рублей</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-dark border-warning">
+                    <div class="card-body">
+                        <h6><i class="fas fa-balance-scale text-warning me-2"></i>Баланс</h6>
+                        <p class="small text-muted mb-0">Сохраняйте баланс между поисковыми кампаниями и аукционами</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// График сравнения типов кампаний
+const typeCtx = document.getElementById('campaignTypeChart').getContext('2d');
+new Chart(typeCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['🔍 Поисковые', '⚡ Аукционы'],
+        datasets: [{
+            data: [{{ search_campaigns_count }}, {{ auction_campaigns_count }}],
+            backgroundColor: ['#ff6b35', '#ffa94d'],
+            borderColor: ['#e55a2b', '#ff922b'],
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    color: '#f8f9fa',
+                    padding: 20
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

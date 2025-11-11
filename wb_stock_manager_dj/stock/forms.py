@@ -2,7 +2,9 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User  # Импортируем стандартного User
-from .models import UserProfile, Product, StockMovement
+from django.utils import timezone
+from .models import UserProfile, Product, StockMovement, CampaignDailyStats, AdvertisingCampaign
+
 
 class CustomUserCreationForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
@@ -122,3 +124,71 @@ class StockMovementForm(forms.ModelForm):
             'date': 'Дата операции',
             'notes': 'Примечания'
         }
+
+
+class AdvertisingCampaignForm(forms.ModelForm):
+    """Форма создания/редактирования рекламной кампании"""
+    products = forms.ModelMultipleChoiceField(
+        queryset=Product.objects.none(),
+        widget=forms.SelectMultiple(attrs={'class': 'form-select'}),
+        required=True,
+        label="Товары"
+    )
+    
+    class Meta:
+        model = AdvertisingCampaign
+        fields = ['name', 'campaign_type', 'products', 'start_date', 'end_date', 'status']  # Убрали daily_budget и bid
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Введите название кампании'}),
+            'campaign_type': forms.Select(attrs={'class': 'form-select'}),
+            'start_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'end_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'status': forms.Select(attrs={'class': 'form-select'}),
+        }
+        labels = {
+            'name': 'Название кампании',
+            'campaign_type': 'Тип кампании',
+            'start_date': 'Дата начала',
+            'end_date': 'Дата окончания',
+            'status': 'Статус',
+        }
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.user:
+            # Показываем только товары текущего пользователя
+            self.fields['products'].queryset = Product.objects.filter(user=self.user)
+            
+            # Устанавливаем начальную дату по умолчанию
+            if not self.instance.pk:
+                self.fields['start_date'].initial = timezone.now().date()
+
+
+class CampaignDailyStatsForm(forms.ModelForm):
+    """Форма для ввода ежедневной статистики"""
+    class Meta:
+        model = CampaignDailyStats
+        fields = ['date', 'views', 'clicks', 'cart_adds', 'orders', 'spent']  # Добавили cart_adds
+        widgets = {
+            'date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'views': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+            'clicks': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+            'cart_adds': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+            'orders': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': '0'}),
+            'spent': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'placeholder': '0.00'}),
+        }
+        labels = {
+            'date': 'Дата',
+            'views': 'Показы',
+            'clicks': 'Клики',
+            'cart_adds': 'Добавления в корзину',
+            'orders': 'Заказы',
+            'spent': 'Затраты (руб)',
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if not self.instance.pk:
+            self.fields['date'].initial = timezone.now().date()

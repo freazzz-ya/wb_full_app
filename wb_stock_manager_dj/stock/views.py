@@ -6,8 +6,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
 
-from .models import Product, UserProfile, StockMovement
-from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm
+from .models import Product, UserProfile, StockMovement, AdvertisingCampaign, CampaignDailyStats
+from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm, CampaignDailyStatsForm, AdvertisingCampaignForm
 from .wb_parser import get_wb_simple_service, clear_wb_cache
 
 
@@ -119,11 +119,11 @@ def stock_dashboard(request):
     
     # Фильтрация по остаткам
     if stock_filter == 'low':
-        products_list = [p for p in products_list if 0 < p.current_stock < 10]
+        products_list = [p for p in products_list if 0 < p.current_stock < 50]
     elif stock_filter == 'out':
         products_list = [p for p in products_list if p.current_stock == 0]
     elif stock_filter == 'normal':
-        products_list = [p for p in products_list if p.current_stock >= 10]
+        products_list = [p for p in products_list if p.current_stock >= 50]
     
     # Сортировка
     if sort_by == 'current_stock':
@@ -400,3 +400,245 @@ def documentation(request):
         'page_title': 'Документация'
     }
     return render(request, 'stock/documentation.html', context)
+
+@login_required
+def advertising_dashboard(request):
+    """Дашборд рекламных кампаний"""
+    campaigns = AdvertisingCampaign.objects.filter(user=request.user)
+    
+    # Статистика по всем кампаниям
+    total_campaigns = campaigns.count()
+    active_campaigns = campaigns.filter(status='active').count()
+    total_spent = sum(float(campaign.total_spent) for campaign in campaigns)
+    total_orders = sum(campaign.total_orders for campaign in campaigns)
+    
+    # Последние кампании
+    recent_campaigns = campaigns.order_by('-created_at')[:5]
+    
+    # График эффективности кампаний
+    campaign_stats = []
+    for campaign in campaigns:
+        if campaign.total_orders > 0:
+            campaign_stats.append({
+                'name': campaign.name,
+                'spent': float(campaign.total_spent),
+                'orders': campaign.total_orders,
+                'cpo': float(campaign.cpo)
+            })
+    
+    # Подготовка данных для JSON
+    campaign_names_json = [stat['name'] for stat in campaign_stats]
+    campaign_spent_json = [stat['spent'] for stat in campaign_stats]
+    campaign_orders_json = [stat['orders'] for stat in campaign_stats]
+    
+    context = {
+        'page_title': 'Рекламные кампании',
+        'total_campaigns': total_campaigns,
+        'active_campaigns': active_campaigns,
+        'total_spent': total_spent,
+        'total_orders': total_orders,
+        'recent_campaigns': recent_campaigns,
+        'campaign_stats': campaign_stats,
+        'campaign_names_json': campaign_names_json,
+        'campaign_spent_json': campaign_spent_json,
+        'campaign_orders_json': campaign_orders_json,
+    }
+    return render(request, 'stock/advertising_dashboard.html', context)
+
+
+@login_required
+def campaign_list(request):
+    """Список всех рекламных кампаний"""
+    campaigns = AdvertisingCampaign.objects.filter(user=request.user)
+    
+    # Фильтрация
+    campaign_type = request.GET.get('type', '')
+    status_filter = request.GET.get('status', '')
+    
+    # Исправляем фильтрацию по типу
+    if campaign_type and campaign_type != 'all':
+        campaigns = campaigns.filter(campaign_type=campaign_type)
+    
+    # Исправляем фильтрацию по статусу  
+    if status_filter and status_filter != 'all':
+        campaigns = campaigns.filter(status=status_filter)
+    
+    context = {
+        'page_title': 'Мои рекламные кампании',
+        'campaigns': campaigns,
+        'campaign_type_filter': campaign_type,
+        'status_filter': status_filter,
+    }
+    return render(request, 'stock/campaign_list.html', context)
+
+
+@login_required
+def campaign_create(request):
+    """Создание новой рекламной кампании"""
+    if request.method == 'POST':
+        print("POST данные:", request.POST)
+        print("Выбранные товары:", request.POST.getlist('products'))
+        
+        form = AdvertisingCampaignForm(request.POST, user=request.user)
+        if form.is_valid():
+            campaign = form.save(commit=False)
+            campaign.user = request.user
+            campaign.save()
+            form.save_m2m()  # Сохраняем товары
+            messages.success(request, f'Кампания "{campaign.name}" создана!')
+            return redirect('campaign_list')
+        else:
+            print("Ошибки формы:", form.errors)
+            messages.error(request, 'Пожалуйста, исправьте ошибки в форме.')
+    else:
+        form = AdvertisingCampaignForm(user=request.user)
+    
+    context = {
+        'page_title': 'Создать рекламную кампанию',
+        'form': form,
+        'submit_text': 'Создать кампанию'
+    }
+    return render(request, 'stock/campaign_form.html', context)
+
+
+@login_required
+def campaign_detail(request, campaign_id):
+    """Детальная страница кампании со статистикой"""
+    campaign = get_object_or_404(AdvertisingCampaign, id=campaign_id, user=request.user)
+    daily_stats = campaign.daily_stats.all().order_by('date')  # Изменили на порядок от старых к новым
+    
+    # Форма для добавления статистики
+    if request.method == 'POST':
+        stats_form = CampaignDailyStatsForm(request.POST)
+        if stats_form.is_valid():
+            daily_stat = stats_form.save(commit=False)
+            daily_stat.campaign = campaign
+            
+            # Проверяем, нет ли уже статистики за эту дату
+            existing_stat = CampaignDailyStats.objects.filter(
+                campaign=campaign, 
+                date=daily_stat.date
+            ).first()
+            
+            if existing_stat:
+                # Обновляем существующую запись
+                existing_stat.views = daily_stat.views
+                existing_stat.clicks = daily_stat.clicks
+                existing_stat.cart_adds = daily_stat.cart_adds
+                existing_stat.orders = daily_stat.orders
+                existing_stat.spent = daily_stat.spent
+                existing_stat.save()
+                messages.success(request, f'Статистика за {daily_stat.date} обновлена!')
+            else:
+                # Создаем новую запись
+                daily_stat.save()
+                messages.success(request, f'Статистика за {daily_stat.date} добавлена!')
+            
+            return redirect('campaign_detail', campaign_id=campaign_id)
+    else:
+        stats_form = CampaignDailyStatsForm()
+    
+    # Данные для графиков (берем последние 30 записей)
+    recent_stats = daily_stats.order_by('-date')[:30]
+    dates = [stat.date.strftime('%d.%m') for stat in recent_stats]
+    spends = [float(stat.spent) for stat in recent_stats]
+    orders = [stat.orders for stat in recent_stats]
+    clicks = [stat.clicks for stat in recent_stats]
+    views = [stat.views for stat in recent_stats]
+    
+    context = {
+        'page_title': f'Кампания: {campaign.name}',
+        'campaign': campaign,
+        'daily_stats': daily_stats.order_by('-date'),  # Для таблицы - новые сверху
+        'stats_form': stats_form,
+        'chart_data': {
+            'dates': dates,
+            'spends': spends,
+            'orders': orders,
+            'clicks': clicks,
+            'views': views,
+        }
+    }
+    return render(request, 'stock/campaign_detail.html', context)
+
+@login_required
+def campaign_edit(request, campaign_id):
+    """Редактирование кампании"""
+    campaign = get_object_or_404(AdvertisingCampaign, id=campaign_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = AdvertisingCampaignForm(request.POST, instance=campaign, user=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Кампания "{campaign.name}" обновлена!')
+            return redirect('campaign_list')
+    else:
+        form = AdvertisingCampaignForm(instance=campaign, user=request.user)
+    
+    context = {
+        'page_title': f'Редактировать: {campaign.name}',
+        'form': form,
+        'submit_text': 'Сохранить изменения',
+        'campaign': campaign
+    }
+    return render(request, 'stock/campaign_form.html', context)
+
+
+@login_required
+def campaign_delete(request, campaign_id):
+    """Удаление кампании"""
+    campaign = get_object_or_404(AdvertisingCampaign, id=campaign_id, user=request.user)
+    
+    if request.method == 'POST':
+        campaign_name = campaign.name
+        campaign.delete()
+        messages.success(request, f'Кампания "{campaign_name}" удалена!')
+        return redirect('campaign_list')
+    
+    return render(request, 'stock/campaign_confirm_delete.html', {
+        'campaign': campaign
+    })
+
+
+@login_required
+def advertising_analytics(request):
+    """Аналитика эффективности рекламы"""
+    campaigns = AdvertisingCampaign.objects.filter(user=request.user)
+    
+    # Общая статистика
+    total_campaigns = campaigns.count()
+    total_spent = sum(campaign.total_spent for campaign in campaigns)
+    total_orders = sum(campaign.total_orders for campaign in campaigns)
+    total_clicks = sum(campaign.total_clicks for campaign in campaigns)
+    
+    # Самые эффективные кампании (по CPO)
+    effective_campaigns = []
+    for campaign in campaigns:
+        if campaign.total_orders > 0:
+            effective_campaigns.append({
+                'campaign': campaign,
+                'cpo': campaign.cpo,
+                'roi': (campaign.total_orders * 1000 - campaign.total_spent) / campaign.total_spent * 100 if campaign.total_spent > 0 else 0
+            })
+    
+    # Сортируем по CPO (чем меньше, тем лучше)
+    effective_campaigns.sort(key=lambda x: x['cpo'])
+    
+    # Статистика по типам кампаний
+    search_campaigns = campaigns.filter(campaign_type='search')
+    auction_campaigns = campaigns.filter(campaign_type='auction')
+    
+    context = {
+        'page_title': 'Аналитика рекламы',
+        'total_campaigns': total_campaigns,
+        'total_spent': total_spent,
+        'total_orders': total_orders,
+        'total_clicks': total_clicks,
+        'effective_campaigns': effective_campaigns[:10],
+        'search_campaigns_count': search_campaigns.count(),
+        'auction_campaigns_count': auction_campaigns.count(),
+        'search_campaigns_orders': sum(c.total_orders for c in search_campaigns),
+        'auction_campaigns_orders': sum(c.total_orders for c in auction_campaigns),
+    }
+    return render(request, 'stock/advertising_analytics.html', context)
+

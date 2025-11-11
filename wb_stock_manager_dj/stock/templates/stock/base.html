@@ -293,6 +293,9 @@
                 <a class="nav-link" href="{% url 'product_list' %}">
         <i class="fas fa-cubes me-1"></i>Мои товары
     </a>
+    <a class="nav-link" href="{% url 'advertising_dashboard' %}">
+    <i class="fas fa-bullhorn me-1"></i>Реклама
+</a>
     <a class="nav-link" href="{% url 'analytics_dashboard' %}">
         <i class="fas fa-chart-line me-1"></i>Аналитика
     </a>
@@ -348,5 +351,43 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </body>
-
 </html>
+<style>
+.table th {
+    background: linear-gradient(135deg, var(--primary-orange), var(--dark-orange)) !important;
+    color: var(--text-light) !important;
+    font-weight: 700 !important;
+    border: none !important;
+    padding: 15px 12px !important;
+    font-size: 0.9rem !important;
+}
+
+.table td {
+    background: var(--light-black) !important;
+    color: var(--text-light) !important;
+    border-color: var(--accent-gray) !important;
+    padding: 12px !important;
+    vertical-align: middle !important;
+}
+
+/* Стили для кликабельных ссылок в таблицах */
+.table a.text-primary {
+    color: var(--primary-orange) !important;
+    transition: all 0.3s ease;
+}
+
+.table a.text-primary:hover {
+    color: var(--light-orange) !important;
+    text-decoration: underline !important;
+}
+
+/* Эффект для всей строки таблицы */
+.table-hover tbody tr {
+    transition: all 0.3s ease;
+}
+
+.table-hover tbody tr:hover {
+    background: rgba(255, 107, 53, 0.1) !important;
+    transform: translateX(5px);
+}
+</style>

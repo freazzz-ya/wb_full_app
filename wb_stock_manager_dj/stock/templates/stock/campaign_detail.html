@@ -1,0 +1,426 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}{{ page_title }} - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>🎯 {{ page_title }}</h1>
+    <div>
+        <a href="{% url 'campaign_edit' campaign.id %}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-edit me-2"></i>Редактировать
+        </a>
+        <a href="{% url 'campaign_list' %}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i>Все кампании
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Основная информация -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация о кампании</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Тип:</strong>
+                    <span class="badge bg-primary ms-2">{{ campaign.get_campaign_type_display }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Статус:</strong>
+                    <span class="badge {% if campaign.status == 'active' %}bg-success{% elif campaign.status == 'paused' %}bg-warning{% else %}bg-danger{% endif %} ms-2">
+                        {{ campaign.get_status_display }}
+                    </span>
+                </div>
+                <div class="mb-3">
+                    <strong>Дата начала:</strong>
+                    <span class="ms-2">{{ campaign.start_date }}</span>
+                </div>
+                {% if campaign.end_date %}
+                <div class="mb-3">
+                    <strong>Дата окончания:</strong>
+                    <span class="ms-2">{{ campaign.end_date }}</span>
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <strong>Дней работы:</strong>
+                    <span class="ms-2">{{ campaign.days_running }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Статистика</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Всего затрат:</strong>
+                    <span class="fw-bold text-warning ms-2">{{ campaign.total_spent|floatformat:2 }} ₽</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Показы:</strong>
+                    <span class="fw-bold text-info ms-2">{{ campaign.total_views }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Клики:</strong>
+                    <span class="fw-bold text-primary ms-2">{{ campaign.total_clicks }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Добавления в корзину:</strong>
+                    <span class="fw-bold text-warning ms-2">{{ campaign.total_cart_adds }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>Заказы:</strong>
+                    <span class="fw-bold text-success ms-2">{{ campaign.total_orders }}</span>
+                </div>
+                <div class="mb-3">
+                    <strong>CTR:</strong>
+                    <span class="fw-bold ms-2">{{ campaign.ctr|floatformat:2 }}%</span>
+                </div>
+                <div class="mb-3">
+                    <strong>CPO:</strong>
+                    <span class="fw-bold ms-2">{{ campaign.cpo|floatformat:2 }} ₽</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Товары кампании -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-cubes me-2"></i>Товары в кампании</h5>
+            </div>
+            <div class="card-body">
+                {% if campaign.products.all %}
+                    {% for product in campaign.products.all %}
+                    <div class="d-flex align-items-center mb-2 p-2 border-bottom border-secondary">
+                        {% if product.image %}
+                        <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                             class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                        {% else %}
+                        <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center" 
+                             style="width: 40px; height: 40px;">
+                            <i class="fas fa-cube text-light"></i>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <div class="fw-semibold">{{ product.name }}</div>
+                            <small class="text-muted">Арт: {{ product.article }}</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-3">
+                        <i class="fas fa-cube fa-2x mb-2"></i>
+                        <p>Нет товаров в кампании</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Графики -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Динамика кампании</h5>
+            </div>
+            <div class="card-body">
+                {% if daily_stats %}
+                <div class="chart-container">
+                    <canvas id="campaignChart"></canvas>
+                </div>
+                {% else %}
+                <div class="text-center text-muted py-4">
+                    <i class="fas fa-chart-line fa-3x mb-3"></i>
+                    <p>Нет данных для графика</p>
+                    <small>Добавьте статистику кампании чтобы увидеть график</small>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Добавление статистики -->
+<div class="row mb-4">
+    <div class="col-lg-6">
+        <div class="card border-0">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-plus-circle me-2"></i>Добавить статистику за день</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Дата</label>
+                                {{ stats_form.date }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Затраты (руб)</label>
+                                {{ stats_form.spent }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Показы</label>
+                                {{ stats_form.views }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Клики</label>
+                                {{ stats_form.clicks }}
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label class="form-label">Добавления в корзину</label>
+                                {{ stats_form.cart_adds }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Заказы</label>
+                                {{ stats_form.orders }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-save me-2"></i>Добавить статистику
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- История статистики -->
+    <div class="col-lg-6">
+        <div class="card border-0">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-history me-2"></i>История статистики</h5>
+            </div>
+            <div class="card-body">
+                {% if daily_stats %}
+                <div class="table-responsive">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th style="color: var(--text-light) !important; font-weight: 700;">Дата</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">Показы</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">Клики</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">Корзины</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">Заказы</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">Затраты</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">CTR</th>
+                <th style="color: var(--text-light) !important; font-weight: 700;">CPC</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for stat in daily_stats|slice:":10" %}
+            <tr>
+                <td>{{ stat.date }}</td>
+                <td>{{ stat.views }}</td>
+                <td>{{ stat.clicks }}</td>
+                <td>{{ stat.cart_adds }}</td>
+                <td class="fw-bold text-success">{{ stat.orders }}</td>
+                <td class="fw-bold text-warning">{{ stat.spent }} ₽</td>
+                <td>{{ stat.ctr|floatformat:2 }}%</td>
+                <td>{{ stat.cpc|floatformat:2 }} ₽</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+                {% else %}
+                <div class="text-center text-muted py-3">
+                    <i class="fas fa-chart-bar fa-2x mb-2"></i>
+                    <p>Нет данных статистики</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+{% if daily_stats %}
+<script>
+// Ждем загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    const campaignCtx = document.getElementById('campaignChart').getContext('2d');
+    
+    // Подготавливаем данные для графика (берем последние 30 записей)
+    const stats = {{ daily_stats|slice:":30"|length }};
+    const chartDates = [
+        {% for stat in daily_stats|slice:":30" %}
+        "{{ stat.date|date:'d.m' }}"{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ].reverse(); // Переворачиваем чтобы даты шли от старых к новым
+
+    const chartSpends = [
+        {% for stat in daily_stats|slice:":30" %}
+        {{ stat.spent }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ].reverse();
+
+    const chartOrders = [
+        {% for stat in daily_stats|slice:":30" %}
+        {{ stat.orders }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ].reverse();
+
+    const chartClicks = [
+        {% for stat in daily_stats|slice:":30" %}
+        {{ stat.clicks }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ].reverse();
+
+    const chartViews = [
+        {% for stat in daily_stats|slice:":30" %}
+        {{ stat.views }}{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ].reverse();
+
+    console.log('Dates:', chartDates);
+    console.log('Spends:', chartSpends);
+    console.log('Orders:', chartOrders);
+    
+    // Создаем график
+    new Chart(campaignCtx, {
+        type: 'line',
+        data: {
+            labels: chartDates,
+            datasets: [
+                {
+                    label: 'Затраты (руб)',
+                    data: chartSpends,
+                    borderColor: '#ff6b35',
+                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    yAxisID: 'y',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Заказы',
+                    data: chartOrders,
+                    borderColor: '#51cf66',
+                    backgroundColor: 'rgba(81, 207, 102, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4,
+                    fill: true,
+                    borderWidth: 2
+                },
+                {
+                    label: 'Клики',
+                    data: chartClicks,
+                    borderColor: '#339af0',
+                    backgroundColor: 'rgba(51, 154, 240, 0.1)',
+                    yAxisID: 'y1',
+                    tension: 0.4,
+                    fill: false,
+                    borderWidth: 1
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Затраты (руб)'
+                    },
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#adb5bd'
+                    }
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    title: {
+                        display: true,
+                        text: 'Клики/Заказы'
+                    },
+                    grid: {
+                        drawOnChartArea: false,
+                    },
+                    ticks: {
+                        color: '#adb5bd'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#adb5bd'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#f8f9fa',
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            }
+        }
+    });
+});
+</script>
+{% endif %}
+
+<style>
+.chart-container {
+    height: 400px;
+    position: relative;
+}
+
+/* Убедимся, что canvas занимает всю доступную площадь */
+#campaignChart {
+    width: 100% !important;
+    height: 100% !important;
+}
+</style>
+{% endblock %}

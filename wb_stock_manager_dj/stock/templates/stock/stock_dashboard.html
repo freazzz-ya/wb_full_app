@@ -254,20 +254,20 @@
                             {% endif %}
                         </td>
                         <td>
-                            <code>{{ product.article }}</code>
+                            <code style="color: var(--text-light);">{{ product.article }}</code>
                         </td>
-                        <td class="fw-semibold">{{ product.name }}</td>
-                        <td>{{ product.purchase_date }}</td>
+                        <td class="fw-semibold" style="color: var(--text-light);">{{ product.name }}</td>
+                        <td style="color: var(--text-light);">{{ product.purchase_date }}</td>
                         <td>
                             <span class="badge {% if product.days_in_stock > 90 %}bg-warning{% else %}bg-info{% endif %}">
                                 {{ product.days_in_stock }} дн.
                             </span>
                         </td>
-                        <td class="fw-semibold">{{ product.initial_quantity }}</td>
+                        <td class="fw-semibold" style="color: var(--text-light);">{{ product.initial_quantity }}</td>
                         <td class="text-success fw-bold">+{{ product.total_in }}</td>
                         <td class="text-danger fw-bold">-{{ product.total_out }}</td>
                         <td>
-                            <span class="{% if product.current_stock < 10 %}stock-low{% else %}stock-ok{% endif %}">
+                            <span class="{% if product.current_stock < 10 %}stock-low{% else %}stock-ok{% endif %}" style="color: var(--text-light);">
                                 {{ product.current_stock }}
                                 {% if product.current_stock == 0 %}
                                     <span class="badge bg-danger ms-1">Нет</span>
@@ -278,7 +278,7 @@
                         </td>
                         <td>
                             <span class="toggle-chart" onclick="toggleChart({{ product.id }})" 
-                                  id="toggle-{{ product.id }}">
+                                  id="toggle-{{ product.id }}" style="color: var(--text-light);">
                                 <i class="fas fa-chart-line me-1"></i>График
                             </span>
                         </td>
@@ -306,8 +306,6 @@
                                     <i class="fas fa-plus me-2"></i>Добавить товар
                                 </a>
                             </div>
-
-                            
                         </td>
                     </tr>
                     {% endfor %}
@@ -425,4 +423,28 @@ function loadChartData(productId) {
         });
 }
 </script>
+
+<style>
+/* Дополнительные стили для лучшей читаемости */
+.table td {
+    color: var(--text-light) !important;
+}
+
+.table th {
+    color: var(--text-muted) !important;
+    border-bottom: 1px solid var(--accent-gray);
+}
+
+.toggle-chart {
+    cursor: pointer;
+    padding: 5px 10px;
+    border-radius: 4px;
+    background: rgba(255, 107, 53, 0.1);
+    transition: all 0.3s ease;
+}
+
+.toggle-chart:hover {
+    background: rgba(255, 107, 53, 0.2);
+}
+</style>
 {% endblock %}

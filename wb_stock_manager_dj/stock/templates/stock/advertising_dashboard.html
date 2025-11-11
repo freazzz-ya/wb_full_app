@@ -1,0 +1,269 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Рекламные кампании - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>📊 {{ page_title }}</h1>
+    <div>
+        <a href="{% url 'campaign_create' %}" class="btn btn-primary me-2">
+            <i class="fas fa-plus me-2"></i>Создать кампанию
+        </a>
+        <a href="{% url 'advertising_analytics' %}" class="btn btn-outline-primary">
+            <i class="fas fa-chart-line me-2"></i>Аналитика
+        </a>
+    </div>
+</div>
+
+<!-- Карточки статистики -->
+<div class="row mb-4">
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="icon-wrapper">
+                        <i class="fas fa-bullhorn text-primary"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title text-muted mb-1">Всего кампаний</h6>
+                        <h3 class="mb-0 text-light">{{ total_campaigns }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="icon-wrapper">
+                        <i class="fas fa-play-circle text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title text-muted mb-1">Активные</h6>
+                        <h3 class="mb-0 text-light">{{ active_campaigns }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="icon-wrapper">
+                        <i class="fas fa-ruble-sign text-warning"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title text-muted mb-1">Всего потрачено</h6>
+                        <h3 class="mb-0 text-light">{{ total_spent|floatformat:2 }} ₽</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="icon-wrapper">
+                        <i class="fas fa-shopping-cart text-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title text-muted mb-1">Всего заказов</h6>
+                        <h3 class="mb-0 text-light">{{ total_orders }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Последние кампании -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-clock me-2"></i>Последние кампании</h5>
+            </div>
+            <div class="card-body">
+                {% if recent_campaigns %}
+                    {% for campaign in recent_campaigns %}
+                    <div class="d-flex justify-content-between align-items-center py-2 border-bottom border-secondary">
+                        <div>
+                            <h6 class="mb-1">{{ campaign.name }}</h6>
+                            <small class="text-muted">
+                                {{ campaign.get_campaign_type_display }} • 
+                                <span class="badge {% if campaign.status == 'active' %}bg-success{% elif campaign.status == 'paused' %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ campaign.get_status_display }}
+                                </span>
+                            </small>
+                        </div>
+                        <div class="text-end">
+                            <div class="fw-bold">{{ campaign.total_spent|floatformat:2 }} ₽</div>
+                            <small class="text-muted">{{ campaign.total_orders }} заказов</small>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-bullhorn fa-3x mb-3"></i>
+                        <p>Нет созданных кампаний</p>
+                        <a href="{% url 'campaign_create' %}" class="btn btn-primary">Создать первую кампанию</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Эффективность кампаний -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-chart-bar me-2"></i>Эффективность кампаний</h5>
+            </div>
+            <div class="card-body">
+                {% if campaign_stats %}
+                    <div class="chart-container">
+                        <canvas id="effectivenessChart"></canvas>
+                    </div>
+                {% else %}
+                    <div class="text-center text-muted py-4">
+                        <i class="fas fa-chart-line fa-3x mb-3"></i>
+                        <p>Нет данных для анализа</p>
+                        <small>Создайте кампании и добавьте статистику</small>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Быстрые действия -->
+<div class="card border-0">
+    <div class="card-header bg-dark border-0">
+        <h5 class="mb-0"><i class="fas fa-rocket me-2"></i>Быстрые действия</h5>
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-3 mb-3">
+                <a href="{% url 'campaign_create' %}" class="btn btn-outline-primary w-100 py-3">
+                    <i class="fas fa-plus fa-2x mb-2"></i><br>
+                    Новая кампания
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="{% url 'campaign_list' %}" class="btn btn-outline-primary w-100 py-3">
+                    <i class="fas fa-list fa-2x mb-2"></i><br>
+                    Все кампании
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="{% url 'advertising_analytics' %}" class="btn btn-outline-primary w-100 py-3">
+                    <i class="fas fa-chart-pie fa-2x mb-2"></i><br>
+                    Аналитика
+                </a>
+            </div>
+            <div class="col-md-3 mb-3">
+                <a href="{% url 'product_list' %}" class="btn btn-outline-primary w-100 py-3">
+                    <i class="fas fa-cubes fa-2x mb-2"></i><br>
+                    Мои товары
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+{% if campaign_stats %}
+// График эффективности кампаний
+const effectivenessCtx = document.getElementById('effectivenessChart').getContext('2d');
+
+new Chart(effectivenessCtx, {
+    type: 'bar',
+    data: {
+        labels: [
+            {% for stat in campaign_stats %}
+            "{{ stat.name }}"{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [
+            {
+                label: 'Потрачено (руб)',
+                data: [
+                    {% for stat in campaign_stats %}
+                    {{ stat.spent }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: 'rgba(255, 107, 53, 0.8)',
+                borderColor: '#ff6b35',
+                borderWidth: 2
+            },
+            {
+                label: 'Заказы',
+                data: [
+                    {% for stat in campaign_stats %}
+                    {{ stat.orders }}{% if not forloop.last %},{% endif %}
+                    {% endfor %}
+                ],
+                backgroundColor: 'rgba(81, 207, 102, 0.8)',
+                borderColor: '#51cf66',
+                borderWidth: 2,
+                type: 'line',
+                yAxisID: 'y1'
+            }
+        ]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Потрачено (руб)'
+                },
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd'
+                }
+            },
+            y1: {
+                position: 'right',
+                beginAtZero: true,
+                title: {
+                    display: true,
+                    text: 'Заказы'
+                },
+                grid: {
+                    drawOnChartArea: false
+                },
+                ticks: {
+                    color: '#adb5bd'
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd',
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#f8f9fa'
+                }
+            }
+        }
+    }
+});
+{% endif %}
+</script>
+{% endblock %}

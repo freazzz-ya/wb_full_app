@@ -1,0 +1,217 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Мои рекламные кампании - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>🎯 {{ page_title }}</h1>
+    <div>
+        <a href="{% url 'campaign_create' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Создать кампанию
+        </a>
+    </div>
+</div>
+
+<!-- Фильтры -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="btn-group w-100">
+                    <a href="?{% if status_filter %}status={{ status_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if not campaign_type_filter or campaign_type_filter == 'all' %}filter-active{% endif %}">
+                        Все типы
+                    </a>
+                    <a href="?type=search{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if campaign_type_filter == 'search' %}filter-active{% endif %}">
+                        🔍 Поисковые
+                    </a>
+                    <a href="?type=auction{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if campaign_type_filter == 'auction' %}filter-active{% endif %}">
+                        ⚡ Аукционы
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="btn-group w-100">
+                    <a href="?{% if campaign_type_filter %}type={{ campaign_type_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if not status_filter or status_filter == 'all' %}filter-active{% endif %}">
+                        Все статусы
+                    </a>
+                    <a href="?status=active{% if campaign_type_filter %}&type={{ campaign_type_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if status_filter == 'active' %}filter-active{% endif %}">
+                        🟢 Активные
+                    </a>
+                    <a href="?status=paused{% if campaign_type_filter %}&type={{ campaign_type_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if status_filter == 'paused' %}filter-active{% endif %}">
+                        🟡 На паузе
+                    </a>
+                    <a href="?status=completed{% if campaign_type_filter %}&type={{ campaign_type_filter }}{% endif %}" 
+                       class="btn btn-outline-primary {% if status_filter == 'completed' %}filter-active{% endif %}">
+                        🔴 Завершены
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Таблица кампаний -->
+<div class="card border-0">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Название</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Тип</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Статус</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Товары</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Показы</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Клики</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Корзины</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Заказы</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Затраты</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">CPO</th>
+                        <th style="color: var(--text-light) !important; font-weight: 700;">Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for campaign in campaigns %}
+                    <tr>
+                        <td>
+                            <a href="{% url 'campaign_detail' campaign.id %}" class="text-decoration-none">
+                                <span class="fw-semibold text-primary hover-underline" style="color: var(--primary-orange) !important;">
+                                    {{ campaign.name }}
+                                </span>
+                            </a>
+                        </td>
+                        <td>{{ campaign.get_campaign_type_display }}</td>
+                        <td>
+                            <span class="badge {% if campaign.status == 'active' %}bg-success{% elif campaign.status == 'paused' %}bg-warning{% else %}bg-danger{% endif %}">
+                                {{ campaign.get_status_display }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge bg-info">{{ campaign.products.count }}</span>
+                        </td>
+                        <td>{{ campaign.total_views }}</td>
+                        <td>{{ campaign.total_clicks }}</td>
+                        <td>{{ campaign.total_cart_adds }}</td>
+                        <td class="fw-bold text-success">{{ campaign.total_orders }}</td>
+                        <td class="fw-bold text-warning">{{ campaign.total_spent|floatformat:2 }} ₽</td>
+                        <td>
+                            {% if campaign.cpo > 0 %}
+                                <span class="badge {% if campaign.cpo < 500 %}bg-success{% elif campaign.cpo < 1000 %}bg-warning{% else %}bg-danger{% endif %}">
+                                    {{ campaign.cpo|floatformat:2 }} ₽
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <a href="{% url 'campaign_detail' campaign.id %}" class="btn btn-sm btn-outline-primary" title="Просмотр">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                <a href="{% url 'campaign_edit' campaign.id %}" class="btn btn-sm btn-outline-primary" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'campaign_delete' campaign.id %}" class="btn btn-sm btn-outline-danger" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="11" class="text-center py-5">
+                            <div class="text-muted">
+                                <i class="fas fa-bullhorn fa-3x mb-3"></i>
+                                <h4>Кампании не найдены</h4>
+                                <p class="mb-3">Создайте первую рекламную кампанию</p>
+                                <a href="{% url 'campaign_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Создать кампанию
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Стили для кликабельных названий */
+.hover-underline:hover {
+    text-decoration: underline !important;
+}
+
+/* Улучшаем видимость заголовков таблицы */
+.table th {
+    background: linear-gradient(135deg, var(--primary-orange), var(--dark-orange)) !important;
+    color: var(--text-light) !important;
+    font-weight: 700 !important;
+    border: none !important;
+    padding: 15px 12px !important;
+    font-size: 0.9rem !important;
+}
+
+/* Улучшаем видимость строк таблицы */
+.table td {
+    background: var(--light-black) !important;
+    color: var(--text-light) !important;
+    border-color: var(--accent-gray) !important;
+    padding: 12px !important;
+    vertical-align: middle !important;
+}
+
+/* Эффект при наведении на строку */
+.table-hover tbody tr:hover {
+    background: rgba(255, 107, 53, 0.1) !important;
+    transform: scale(1.01);
+    transition: all 0.2s ease;
+}
+
+/* Стили для кликабельных ячеек */
+.table tbody tr {
+    cursor: pointer;
+}
+
+.table tbody tr td:first-child {
+    border-left: 3px solid transparent;
+    transition: border-left 0.2s ease;
+}
+
+.table tbody tr:hover td:first-child {
+    border-left: 3px solid var(--primary-orange);
+}
+</style>
+
+<script>
+// Делаем всю строку кликабельной (кроме кнопок действий)
+document.addEventListener('DOMContentLoaded', function() {
+    const tableRows = document.querySelectorAll('.table tbody tr');
+    
+    tableRows.forEach(row => {
+        // Исключаем строку с сообщением "нет кампаний"
+        if (row.cells.length > 1) {
+            row.addEventListener('click', function(e) {
+                // Проверяем, не кликнули ли по кнопкам действий
+                if (!e.target.closest('.btn-group') && !e.target.closest('a[title]')) {
+                    const link = this.querySelector('a[href*="campaign_detail"]');
+                    if (link) {
+                        window.location.href = link.href;
+                    }
+                }
+            });
+            
+            // Добавляем указатель при наведении на всю строку
+            row.style.cursor = 'pointer';
+        }
+    });
+});
+</script>
+{% endblock %}

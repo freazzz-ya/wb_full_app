@@ -22,4 +22,11 @@ urlpatterns = [
     path('analytics/sales-report/', views.sales_report, name='sales_report'),
     path('analytics/products/', views.product_analytics, name='product_analytics'),
     path('documentation/', views.documentation, name='documentation'),
+    path('advertising/', views.advertising_dashboard, name='advertising_dashboard'),
+    path('advertising/campaigns/', views.campaign_list, name='campaign_list'),
+    path('advertising/campaigns/add/', views.campaign_create, name='campaign_create'),
+    path('advertising/campaigns/<int:campaign_id>/', views.campaign_detail, name='campaign_detail'),
+    path('advertising/campaigns/<int:campaign_id>/edit/', views.campaign_edit, name='campaign_edit'),
+    path('advertising/campaigns/<int:campaign_id>/delete/', views.campaign_delete, name='campaign_delete'),
+    path('advertising/analytics/', views.advertising_analytics, name='advertising_analytics'),
 ]

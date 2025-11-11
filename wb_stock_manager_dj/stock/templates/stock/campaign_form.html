@@ -1,0 +1,398 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}{{ page_title }} - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card border-0">
+            <div class="card-header bg-dark border-0">
+                <h3 class="mb-0"><i class="fas fa-bullhorn me-2"></i>{{ page_title }}</h3>
+            </div>
+            <div class="card-body">
+                <!-- Отображение ошибок формы -->
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <strong>Ошибки в форме:</strong>
+                    <ul class="mb-0">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li>{{ field }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                <form method="post" enctype="multipart/form-data" id="campaignForm">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }}</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.campaign_type.id_for_label }}" class="form-label">{{ form.campaign_type.label }}</label>
+                                {{ form.campaign_type }}
+                                {% if form.campaign_type.errors %}
+                                <div class="text-danger small">{{ form.campaign_type.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.start_date.id_for_label }}" class="form-label">{{ form.start_date.label }}</label>
+                                {{ form.start_date }}
+                                {% if form.start_date.errors %}
+                                <div class="text-danger small">{{ form.start_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.end_date.id_for_label }}" class="form-label">{{ form.end_date.label }}</label>
+                                {{ form.end_date }}
+                                {% if form.end_date.errors %}
+                                <div class="text-danger small">{{ form.end_date.errors }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                                {{ form.status }}
+                                {% if form.status.errors %}
+                                <div class="text-danger small">{{ form.status.errors }}</div>
+                                {% endif %}
+                            </div>
+
+                    <!-- Улучшенный выбор товаров -->
+                    <div class="mb-4">
+                        <label class="form-label">Выберите товары для кампании</label>
+                        <div class="card bg-dark border-secondary">
+                            <div class="card-body">
+                                <!-- Поиск и фильтры -->
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <input type="text" id="productSearch" class="form-control" placeholder="Поиск по названию или артикулу...">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check form-switch">
+                                            <input class="form-check-input" type="checkbox" id="showOnlyInStock">
+                                            <label class="form-check-label" for="showOnlyInStock">
+                                                Только товары в наличии
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Кнопки массового выбора -->
+                                <div class="mb-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary me-2" id="selectAll">
+                                        <i class="fas fa-check-square me-1"></i>Выбрать все
+                                    </button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAll">
+                                        <i class="fas fa-times-circle me-1"></i>Снять выделение
+                                    </button>
+                                    <span class="badge bg-info ms-2" id="selectedCount">Выбрано: 0</span>
+                                </div>
+
+                                <!-- Список товаров -->
+                                <div class="products-grid" style="max-height: 400px; overflow-y: auto;">
+                                    <div class="row g-2" id="productsContainer">
+                                        {% for product in form.products.field.queryset %}
+                                        <div class="col-lg-4 col-md-6 product-item" 
+                                             data-product-id="{{ product.id }}" 
+                                             data-product-name="{{ product.name|lower }}" 
+                                             data-product-article="{{ product.article|lower }}"
+                                             data-in-stock="{% if product.current_stock > 0 %}true{% else %}false{% endif %}">
+                                            <div class="card product-card h-100 border-secondary">
+                                                <div class="card-body p-3">
+                                                    <div class="form-check mb-2">
+                                                        <input class="form-check-input product-checkbox" 
+                                                               type="checkbox" 
+                                                               name="products" 
+                                                               value="{{ product.id }}" 
+                                                               id="product_{{ product.id }}"
+                                                               {% if product.id in form.products.value %}checked{% endif %}>
+                                                        <label class="form-check-label fw-bold" for="product_{{ product.id }}">
+                                                            {{ product.name }}
+                                                        </label>
+                                                    </div>
+                                                    <div class="d-flex align-items-center mb-2">
+                                                        {% if product.image %}
+                                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                                             class="rounded me-2" style="width: 40px; height: 40px; object-fit: cover;">
+                                                        {% else %}
+                                                        <div class="bg-secondary rounded me-2 d-flex align-items-center justify-content-center" 
+                                                             style="width: 40px; height: 40px;">
+                                                            <i class="fas fa-cube text-light"></i>
+                                                        </div>
+                                                        {% endif %}
+                                                        <div>
+                                                            <small class="text-muted d-block">Арт: {{ product.article }}</small>
+                                                            <small class="{% if product.current_stock > 0 %}text-success{% else %}text-danger{% endif %}">
+                                                                Остаток: {{ product.current_stock }} шт.
+                                                            </small>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {% empty %}
+                                        <div class="col-12">
+                                            <div class="text-center text-muted py-4">
+                                                <i class="fas fa-cube fa-3x mb-3"></i>
+                                                <p>Нет доступных товаров</p>
+                                                <a href="{% url 'product_add' %}" class="btn btn-primary btn-sm">
+                                                    <i class="fas fa-plus me-1"></i>Добавить товар
+                                                </a>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% if form.products.errors %}
+                        <div class="text-danger small">{{ form.products.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'campaign_list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>Назад
+                        </a>
+                        <button type="submit" class="btn btn-primary" id="submitBtn">
+                            <i class="fas fa-save me-2"></i>{{ submit_text }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-label {
+    color: var(--text-light);
+    font-weight: 600;
+}
+
+.form-control, .form-select {
+    background: var(--light-black);
+    border: 1px solid var(--accent-gray);
+    color: var(--text-light);
+}
+
+.form-control:focus, .form-select:focus {
+    background: var(--light-black);
+    border-color: var(--primary-orange);
+    color: var(--text-light);
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+}
+
+.form-text {
+    color: var(--text-muted) !important;
+}
+
+/* Стили для карточек товаров */
+.product-card {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.product-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-orange) !important;
+    box-shadow: 0 4px 15px rgba(255, 107, 53, 0.2);
+}
+
+.product-card.selected {
+    border-color: var(--primary-orange) !important;
+    background: rgba(255, 107, 53, 0.05);
+}
+
+.product-checkbox {
+    cursor: pointer;
+}
+
+.products-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.products-grid::-webkit-scrollbar-track {
+    background: var(--light-black);
+}
+
+.products-grid::-webkit-scrollbar-thumb {
+    background: var(--primary-orange);
+    border-radius: 4px;
+}
+
+.products-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--dark-orange);
+}
+
+/* Стили для поиска и фильтров */
+#productSearch {
+    background: var(--light-black);
+    border: 1px solid var(--accent-gray);
+    color: var(--text-light);
+}
+
+#productSearch:focus {
+    border-color: var(--primary-orange);
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-orange);
+    border-color: var(--primary-orange);
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productCheckboxes = document.querySelectorAll('.product-checkbox');
+    const selectAllBtn = document.getElementById('selectAll');
+    const deselectAllBtn = document.getElementById('deselectAll');
+    const productSearch = document.getElementById('productSearch');
+    const showOnlyInStock = document.getElementById('showOnlyInStock');
+    const selectedCount = document.getElementById('selectedCount');
+    const productsContainer = document.getElementById('productsContainer');
+    const productItems = document.querySelectorAll('.product-item');
+    const submitBtn = document.getElementById('submitBtn');
+
+    // Обновление счетчика выбранных товаров
+    function updateSelectedCount() {
+        const selected = document.querySelectorAll('.product-checkbox:checked').length;
+        selectedCount.textContent = `Выбрано: ${selected}`;
+        
+        // Обновляем визуальное выделение
+        productItems.forEach(item => {
+            const card = item.querySelector('.product-card');
+            const checkbox = item.querySelector('.product-checkbox');
+            if (checkbox.checked) {
+                card.classList.add('selected');
+            } else {
+                card.classList.remove('selected');
+            }
+        });
+    }
+
+    // Выбор всех товаров
+    selectAllBtn.addEventListener('click', function() {
+        productCheckboxes.forEach(checkbox => {
+            checkbox.checked = true;
+        });
+        updateSelectedCount();
+    });
+
+    // Снятие выделения со всех товаров
+    deselectAllBtn.addEventListener('click', function() {
+        productCheckboxes.forEach(checkbox => {
+            checkbox.checked = false;
+        });
+        updateSelectedCount();
+    });
+
+    // Обработка клика по карточке товара
+    productItems.forEach(item => {
+        const card = item.querySelector('.product-card');
+        const checkbox = item.querySelector('.product-checkbox');
+        
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.form-check')) {
+                checkbox.checked = !checkbox.checked;
+                updateSelectedCount();
+            }
+        });
+
+        // Обработка изменения checkbox
+        checkbox.addEventListener('change', function() {
+            updateSelectedCount();
+        });
+    });
+
+    // Поиск товаров
+    productSearch.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        filterProducts();
+    });
+
+    // Фильтр по наличию
+    showOnlyInStock.addEventListener('change', function() {
+        filterProducts();
+    });
+
+    // Функция фильтрации товаров
+    function filterProducts() {
+        const searchTerm = productSearch.value.toLowerCase();
+        const onlyInStock = showOnlyInStock.checked;
+
+        productItems.forEach(item => {
+            const productName = item.getAttribute('data-product-name');
+            const productArticle = item.getAttribute('data-product-article');
+            const inStock = item.getAttribute('data-in-stock') === 'true';
+            
+            const matchesSearch = productName.includes(searchTerm) || productArticle.includes(searchTerm);
+            const matchesStock = !onlyInStock || inStock;
+            
+            if (matchesSearch && matchesStock) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    // Валидация формы перед отправкой
+    document.getElementById('campaignForm').addEventListener('submit', function(e) {
+        const selectedProducts = document.querySelectorAll('.product-checkbox:checked');
+        
+        if (selectedProducts.length === 0) {
+            e.preventDefault();
+            alert('Пожалуйста, выберите хотя бы один товар для кампании');
+            return false;
+        }
+
+        // Проверяем обязательные поля
+        const campaignName = document.querySelector('#id_name').value.trim();
+        if (!campaignName) {
+            e.preventDefault();
+            alert('Пожалуйста, введите название кампании');
+            return false;
+        }
+
+        console.log('Отправка формы. Выбрано товаров:', selectedProducts.length);
+        
+        // Показываем индикатор загрузки
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Создание...';
+        submitBtn.disabled = true;
+    });
+
+    // Инициализация счетчика
+    updateSelectedCount();
+});
+</script>
+{% endblock %}

@@ -204,3 +204,171 @@ class StockMovement(models.Model):
 
     def __str__(self):
         return f"{self.product.name} - {self.get_movement_type_display()} - {self.quantity}"
+
+class AdvertisingCampaign(models.Model):
+    """Рекламная кампания Wildberries"""
+    CAMPAIGN_TYPES = (
+        ('search', '🔍 Поисковая кампания'),
+        ('auction', '⚡ Аукцион'),
+    )
+    
+    STATUS_CHOICES = (
+        ('active', '🟢 Активная'),
+        ('paused', '🟡 На паузе'),
+        ('completed', '🔴 Завершена'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='ad_campaigns')
+    name = models.CharField(max_length=255, verbose_name="Название кампании")
+    campaign_type = models.CharField(max_length=10, choices=CAMPAIGN_TYPES, verbose_name="Тип кампании")
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name="Статус")
+    
+    # Убрали daily_budget и bid, так как будем вводить статистику вручную
+    
+    # Товары в кампании
+    products = models.ManyToManyField('Product', related_name='ad_campaigns', verbose_name="Товары")
+    
+    # Даты
+    start_date = models.DateField(default=timezone.now, verbose_name="Дата начала")
+    end_date = models.DateField(blank=True, null=True, verbose_name="Дата окончания")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Рекламная кампания"
+        verbose_name_plural = "Рекламные кампании"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.name} ({self.get_campaign_type_display()})"
+
+    @property
+    def days_running(self):
+        """Сколько дней работает кампания"""
+        from datetime import date
+        end_date = self.end_date or date.today()
+        return (end_date - self.start_date).days
+
+    @property
+    def total_spent(self):
+        """Общие затраты на кампанию"""
+        return self.daily_stats.aggregate(total=models.Sum('spent'))['total'] or 0
+
+    @property
+    def total_views(self):
+        """Общее количество показов"""
+        return self.daily_stats.aggregate(total=models.Sum('views'))['total'] or 0
+
+    @property
+    def total_clicks(self):
+        """Общее количество кликов"""
+        return self.daily_stats.aggregate(total=models.Sum('clicks'))['total'] or 0
+
+    @property
+    def total_cart_adds(self):
+        """Общее количество добавлений в корзину"""
+        return self.daily_stats.aggregate(total=models.Sum('cart_adds'))['total'] or 0
+
+    @property
+    def total_orders(self):
+        """Общее количество заказов"""
+        return self.daily_stats.aggregate(total=models.Sum('orders'))['total'] or 0
+
+    @property
+    def ctr(self):
+        """CTR (Click-Through Rate)"""
+        if self.total_views > 0:
+            return (self.total_clicks / self.total_views) * 100
+        return 0
+
+    @property
+    def cpc(self):
+        """Средняя стоимость клика"""
+        if self.total_clicks > 0:
+            return self.total_spent / self.total_clicks
+        return 0
+
+    @property
+    def cpo(self):
+        """Средняя стоимость заказа"""
+        if self.total_orders > 0:
+            return self.total_spent / self.total_orders
+        return 0
+
+    @property
+    def conversion_rate(self):
+        """Конверсия из клика в заказ"""
+        if self.total_clicks > 0:
+            return (self.total_orders / self.total_clicks) * 100
+        return 0
+
+    @property
+    def cart_conversion_rate(self):
+        """Конверсия из корзины в заказ"""
+        if self.total_cart_adds > 0:
+            return (self.total_orders / self.total_cart_adds) * 100
+        return 0
+
+    @property
+    def is_active(self):
+        """Активна ли кампания"""
+        from datetime import date
+        if self.status != 'active':
+            return False
+        if self.end_date and self.end_date < date.today():
+            return False
+        return True
+
+
+class CampaignDailyStats(models.Model):
+    """Ежедневная статистика по рекламной кампании"""
+    campaign = models.ForeignKey(AdvertisingCampaign, on_delete=models.CASCADE, related_name='daily_stats')
+    date = models.DateField(verbose_name="Дата")
+    
+    # Основные метрики
+    views = models.PositiveIntegerField(default=0, verbose_name="Показы")
+    clicks = models.PositiveIntegerField(default=0, verbose_name="Клики")
+    cart_adds = models.PositiveIntegerField(default=0, verbose_name="Добавления в корзину")
+    orders = models.PositiveIntegerField(default=0, verbose_name="Заказы")
+    spent = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Затраты (руб)")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Статистика кампании"
+        verbose_name_plural = "Статистика кампаний"
+        ordering = ['-date']
+        unique_together = ['campaign', 'date']
+
+    def __str__(self):
+        return f"{self.campaign.name} - {self.date}"
+
+    @property
+    def ctr(self):
+        """CTR (Click-Through Rate)"""
+        if self.views > 0:
+            return (self.clicks / self.views) * 100
+        return 0
+
+    @property
+    def cpc(self):
+        """Стоимость клика"""
+        if self.clicks > 0:
+            return self.spent / self.clicks
+        return 0
+
+    @property
+    def cpo(self):
+        """Стоимость заказа"""
+        if self.orders > 0:
+            return self.spent / self.orders
+        return 0
+
+    @property
+    def conversion_rate(self):
+        """Конверсия из клика в заказ"""
+        if self.clicks > 0:
+            return (self.orders / self.clicks) * 100
+        return 0
