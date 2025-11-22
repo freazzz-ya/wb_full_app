@@ -1,0 +1,311 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Цель: {{ goal.title }} - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-bullseye me-2 text-warning"></i>{{ page_title }}</h1>
+    <div>
+        <a href="{% url 'campaign_goals' %}" class="btn btn-outline-primary me-2">
+            <i class="fas fa-arrow-left me-2"></i>Все цели
+        </a>
+        <a href="{% url 'goal_edit' goal.id %}" class="btn btn-warning me-2">
+            <i class="fas fa-edit me-2"></i>Редактировать
+        </a>
+        {% if goal.status == 'active' %}
+        <form method="post" action="{% url 'goal_archive' goal.id %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-archive me-2"></i>В архив
+            </button>
+        </form>
+        {% else %}
+        <form method="post" action="{% url 'goal_reactivate' goal.id %}" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-redo me-2"></i>Восстановить
+            </button>
+        </form>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Основная информация о цели -->
+    <div class="col-lg-8">
+        <div class="card border-0 mb-4">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>Информация о цели</h5>
+            </div>
+            <div class="card-body">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Название:</strong>
+                        <p class="mb-2">{{ goal.title }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Тип цели:</strong>
+                        <p class="mb-2"><span class="badge bg-info">{{ goal.get_goal_type_display }}</span></p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Описание:</strong>
+                        <p class="mb-2">{{ goal.description|linebreaksbr|default:"Описание отсутствует" }}</p>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <strong>Дата начала:</strong>
+                        <p class="mb-2">{{ goal.start_date }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Дедлайн:</strong>
+                        <p class="mb-2">
+                            {% if goal.deadline %}
+                                {{ goal.deadline }}
+                                {% if goal.is_overdue %}
+                                    <span class="badge bg-danger ms-2">Просрочено</span>
+                                {% else %}
+                                    <span class="badge bg-warning ms-2">Осталось: {{ goal.days_remaining }} дн.</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">Не установлен</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                {% if goal.campaigns.exists %}
+                <div class="row mb-3">
+                    <div class="col-12">
+                        <strong>Связанные кампании:</strong>
+                        <div class="mt-2">
+                            {% for campaign in goal.campaigns.all %}
+                            <span class="badge bg-dark me-1 mb-1">{{ campaign.name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Прогресс цели -->
+        <div class="card border-0 mb-4">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2"></i>Прогресс цели</h5>
+            </div>
+            <div class="card-body">
+                <div class="text-center mb-4">
+                    <div class="display-4 fw-bold {% if goal.progress_percentage < 50 %}text-warning{% elif goal.progress_percentage < 80 %}text-info{% else %}text-success{% endif %}">
+                        {{ goal.progress_percentage }}%
+                    </div>
+                    <p class="text-muted">Текущий прогресс</p>
+                </div>
+                
+                <div class="progress mb-3" style="height: 30px;">
+                    <div class="progress-bar {% if goal.progress_percentage < 50 %}bg-warning{% elif goal.progress_percentage < 80 %}bg-info{% else %}bg-success{% endif %}" 
+                         role="progressbar" 
+                         style="width: {{ goal.progress_percentage }}%"
+                         aria-valuenow="{{ goal.progress_percentage }}" 
+                         aria-valuemin="0" 
+                         aria-valuemax="100">
+                        {{ goal.progress_percentage }}%
+                    </div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-md-6">
+                        <strong>Текущее значение:</strong>
+                        <div class="h4 text-primary">{{ goal.current_value }}</div>
+                    </div>
+                    <div class="col-md-6">
+                        <strong>Целевое значение:</strong>
+                        <div class="h4 text-success">{{ goal.target_value|default:"Не установлено" }}</div>
+                    </div>
+                </div>
+                
+                {% if goal.status == 'active' %}
+                <hr>
+                <form method="post" action="{% url 'goal_update_progress' goal.id %}" class="row g-3">
+                    {% csrf_token %}
+                    <div class="col-md-8">
+                        <label for="current_value" class="form-label">Обновить текущее значение:</label>
+                        <input type="number" step="0.01" class="form-control" id="current_value" name="current_value" 
+                               value="{{ goal.current_value }}" required>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-sync me-2"></i>Обновить
+                        </button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Боковая панель -->
+    <div class="col-lg-4">
+        <!-- Статус и даты -->
+        <div class="card border-0 mb-4">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-calendar me-2"></i>Статус</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <strong>Статус:</strong>
+                    <div>
+                        {% if goal.status == 'active' %}
+                            <span class="badge bg-success fs-6">🟢 Активная</span>
+                        {% elif goal.status == 'completed' %}
+                            <span class="badge bg-info fs-6">✅ Завершена</span>
+                        {% else %}
+                            <span class="badge bg-warning fs-6">📁 В архиве</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Создана:</strong>
+                    <p class="mb-1">{{ goal.created_at|date:"d.m.Y H:i" }}</p>
+                </div>
+                
+                <div class="mb-3">
+                    <strong>Обновлена:</strong>
+                    <p class="mb-1">{{ goal.updated_at|date:"d.m.Y H:i" }}</p>
+                </div>
+                
+                {% if goal.completed_date %}
+                <div class="mb-3">
+                    <strong>Завершена:</strong>
+                    <p class="mb-1">{{ goal.completed_date }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Быстрые действия -->
+        <div class="card border-0">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0"><i class="fas fa-bolt me-2"></i>Действия</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{% url 'goal_edit' goal.id %}" class="btn btn-warning">
+                        <i class="fas fa-edit me-2"></i>Редактировать цель
+                    </a>
+                    
+                    {% if goal.status == 'active' %}
+                    <form method="post" action="{% url 'goal_archive' goal.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-secondary w-100">
+                            <i class="fas fa-archive me-2"></i>В архив
+                        </button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'goal_reactivate' goal.id %}">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-success w-100">
+                            <i class="fas fa-redo me-2"></i>Восстановить
+                        </button>
+                    </form>
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'goal_delete' goal.id %}" 
+                          onsubmit="return confirm('Вы уверены, что хотите удалить эту цель?')">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-danger w-100">
+                            <i class="fas fa-trash me-2"></i>Удалить цель
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Заметки к цели -->
+<div class="card border-0 mt-4">
+    <div class="card-header bg-dark border-0 d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-sticky-note me-2"></i>Заметки к цели</h5>
+        <span class="badge bg-primary">{{ notes.count }}</span>
+    </div>
+    <div class="card-body">
+        <!-- Форма добавления заметки -->
+        <div class="card bg-dark border-primary mb-4">
+            <div class="card-header border-primary">
+                <h6 class="mb-0"><i class="fas fa-plus me-2"></i>Добавить новую заметку</h6>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        {{ note_form.title.label_tag }}
+                        {{ note_form.title }}
+                    </div>
+                    <div class="mb-3">
+                        {{ note_form.content.label_tag }}
+                        {{ note_form.content }}
+                        <div class="form-text">Вы можете писать подробные заметки о прогрессе, идеях, проблемах и решениях</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Сохранить заметку
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Список заметок -->
+        {% if notes %}
+        <div class="row">
+            {% for note in notes %}
+            <div class="col-12 mb-3">
+                <div class="card bg-dark border-secondary">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h6 class="card-title mb-0">{{ note.title }}</h6>
+                            <small class="text-muted">{{ note.created_at|date:"d.m.Y H:i" }}</small>
+                        </div>
+                        <p class="card-text">{{ note.content|linebreaksbr }}</p>
+                        {% if note.updated_at != note.created_at %}
+                        <small class="text-muted">Обновлено: {{ note.updated_at|date:"d.m.Y H:i" }}</small>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">
+            <i class="fas fa-sticky-note fa-3x mb-3"></i>
+            <p>Заметок пока нет</p>
+            <p class="small">Добавьте первую заметку чтобы отслеживать прогресс и идеи</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.progress {
+    background-color: var(--accent-gray);
+    border-radius: 15px;
+}
+
+.progress-bar {
+    border-radius: 15px;
+    transition: width 0.6s ease;
+}
+
+.card.border-primary {
+    border: 1px solid var(--bs-primary) !important;
+}
+
+.card.border-secondary {
+    border: 1px solid var(--accent-gray) !important;
+}
+</style>
+{% endblock %}

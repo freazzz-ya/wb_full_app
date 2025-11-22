@@ -205,6 +205,7 @@ class StockMovement(models.Model):
     def __str__(self):
         return f"{self.product.name} - {self.get_movement_type_display()} - {self.quantity}"
 
+
 class AdvertisingCampaign(models.Model):
     """Рекламная кампания Wildberries"""
     CAMPAIGN_TYPES = (
@@ -372,3 +373,101 @@ class CampaignDailyStats(models.Model):
         if self.clicks > 0:
             return (self.orders / self.clicks) * 100
         return 0
+
+
+class CampaignGoal(models.Model):
+    """Цели для рекламных кампаний"""
+    GOAL_TYPES = (
+        ('sales', '🎯 Увеличение продаж'),
+        ('traffic', '🚀 Улучшение рекламы'),
+        ('conversion', '📈 Повышение конверсии'),
+        ('brand', '🏆 Укрепление бренда'),
+        ('profit', '💰 Увеличение прибыли'),
+        ('other', '📝 Другая цель'),
+    )
+    
+    STATUS_CHOICES = (
+        ('active', '🟢 Активная'),
+        ('completed', '✅ Завершена'),
+        ('archived', '📁 В архиве'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='campaign_goals')
+    title = models.CharField(max_length=255, verbose_name="Название цели")
+    goal_type = models.CharField(max_length=15, choices=GOAL_TYPES, verbose_name="Тип цели")
+    description = models.TextField(verbose_name="Описание цели", blank=True)
+    
+    # Прогресс цели
+    target_value = models.DecimalField(max_digits=15, decimal_places=2, verbose_name="Целевое значение", null=True, blank=True)
+    current_value = models.DecimalField(max_digits=15, decimal_places=2, default=0, verbose_name="Текущее значение")
+    progress_percentage = models.PositiveIntegerField(default=0, verbose_name="Прогресс (%)")
+    
+    # Связанные кампании
+    campaigns = models.ManyToManyField('AdvertisingCampaign', related_name='goals', blank=True, verbose_name="Связанные кампании")
+    
+    # Даты
+    start_date = models.DateField(default=timezone.now, verbose_name="Дата начала")
+    deadline = models.DateField(null=True, blank=True, verbose_name="Дедлайн")
+    completed_date = models.DateField(null=True, blank=True, verbose_name="Дата завершения")
+    
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name="Статус")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Цель кампании"
+        verbose_name_plural = "Цели кампаний"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} ({self.get_goal_type_display()})"
+
+    def save(self, *args, **kwargs):
+        """Автоматически рассчитываем прогресс при сохранении"""
+        if self.target_value and self.target_value > 0:
+            self.progress_percentage = min(100, int((self.current_value / self.target_value) * 100))
+        else:
+            self.progress_percentage = 0
+            
+        # Если прогресс 100% и цель активна - помечаем как завершенную
+        if self.progress_percentage >= 100 and self.status == 'active':
+            self.status = 'completed'
+            self.completed_date = timezone.now().date()
+            
+        super().save(*args, **kwargs)
+
+    @property
+    def days_remaining(self):
+        """Осталось дней до дедлайна"""
+        from datetime import date
+        if self.deadline and self.status == 'active':
+            remaining = (self.deadline - date.today()).days
+            return max(0, remaining)
+        return None
+
+    @property
+    def is_overdue(self):
+        """Просрочена ли цель"""
+        from datetime import date
+        if self.deadline and self.status == 'active' and self.deadline < date.today():
+            return True
+        return False
+
+
+class GoalNote(models.Model):
+    """Заметки к целям"""
+    goal = models.ForeignKey(CampaignGoal, on_delete=models.CASCADE, related_name='notes')
+    title = models.CharField(max_length=255, verbose_name="Заголовок заметки")
+    content = models.TextField(verbose_name="Содержание заметки")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Заметка цели"
+        verbose_name_plural = "Заметки целей"
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.title} - {self.goal.title}"

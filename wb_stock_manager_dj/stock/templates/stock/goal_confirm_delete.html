@@ -1,0 +1,52 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Удаление цели - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card border-0">
+            <div class="card-body text-center p-5">
+                <div class="display-1 text-danger mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                
+                <h2 class="mb-3">Удаление цели</h2>
+                
+                <p class="lead mb-4">
+                    Вы уверены, что хотите удалить цель 
+                    <strong>"{{ goal.title }}"</strong>?
+                </p>
+                
+                <p class="text-muted mb-4">
+                    Это действие нельзя будет отменить. Все заметки, связанные с этой целью, также будут удалены.
+                </p>
+
+                <div class="card bg-dark border-danger mb-4">
+                    <div class="card-body text-start">
+                        <h6 class="card-title">Информация о цели:</h6>
+                        <ul class="mb-0">
+                            <li><strong>Название:</strong> {{ goal.title }}</li>
+                            <li><strong>Тип:</strong> {{ goal.get_goal_type_display }}</li>
+                            <li><strong>Прогресс:</strong> {{ goal.progress_percentage }}%</li>
+                            <li><strong>Статус:</strong> {{ goal.get_status_display }}</li>
+                            <li><strong>Заметок:</strong> {{ goal.notes.count }}</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <form method="post" class="d-inline">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger btn-lg me-3">
+                        <i class="fas fa-trash me-2"></i>Да, удалить
+                    </button>
+                </form>
+                
+                <a href="{% url 'campaign_goals' %}" class="btn btn-outline-primary btn-lg">
+                    <i class="fas fa-times me-2"></i>Отмена
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

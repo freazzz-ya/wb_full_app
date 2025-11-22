@@ -1,0 +1,220 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}{{ page_title }} - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>🎯 {{ page_title }}</h1>
+            <a href="{% url 'campaign_goals' %}" class="btn btn-outline-primary">
+                <i class="fas fa-arrow-left me-2"></i>Назад к целям
+            </a>
+        </div>
+
+        <div class="card border-0">
+            <div class="card-header bg-dark border-0">
+                <h5 class="mb-0">
+                    <i class="fas fa-{% if goal %}edit{% else %}plus{% endif %} me-2"></i>
+                    {{ page_title }}
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label">
+                                <strong>Название цели *</strong>
+                            </label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                            <div class="text-danger small">{{ form.title.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.goal_type.id_for_label }}" class="form-label">
+                                <strong>Тип цели *</strong>
+                            </label>
+                            {{ form.goal_type }}
+                            {% if form.goal_type.errors %}
+                            <div class="text-danger small">{{ form.goal_type.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.description.id_for_label }}" class="form-label">
+                            <strong>Описание цели</strong>
+                        </label>
+                        {{ form.description }}
+                        <div class="form-text">Опишите подробно, что вы хотите достичь с помощью этой цели</div>
+                        {% if form.description.errors %}
+                        <div class="text-danger small">{{ form.description.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.target_value.id_for_label }}" class="form-label">
+                                <strong>Целевое значение</strong>
+                            </label>
+                            {{ form.target_value }}
+                            <div class="form-text">Например: 100000 (рублей), 500 (заказов), 15 (%)</div>
+                            {% if form.target_value.errors %}
+                            <div class="text-danger small">{{ form.target_value.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.current_value.id_for_label }}" class="form-label">
+                                <strong>Текущее значение</strong>
+                            </label>
+                            {{ form.current_value }}
+                            <div class="form-text">Текущий прогресс по цели</div>
+                            {% if form.current_value.errors %}
+                            <div class="text-danger small">{{ form.current_value.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.deadline.id_for_label }}" class="form-label">
+                                <strong>Дедлайн</strong>
+                            </label>
+                            {{ form.deadline }}
+                            {% if form.deadline.errors %}
+                            <div class="text-danger small">{{ form.deadline.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">
+                                <strong>Связанные кампании</strong>
+                            </label>
+                            <div class="border rounded p-3" style="background: var(--light-black); border-color: var(--accent-gray) !important; max-height: 200px; overflow-y: auto;">
+                                {% for checkbox in form.campaigns %}
+                                <div class="form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label text-light" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <div class="form-text">Выберите кампании, которые связаны с этой целью</div>
+                            {% if form.campaigns.errors %}
+                            <div class="text-danger small">{{ form.campaigns.errors }}</div>
+                            {% endif %}
+                        </div>
+
+                    {% if goal %}
+                    <!-- Прогресс для существующей цели -->
+                    <div class="card bg-dark border-info mb-4">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="fas fa-chart-line me-2"></i>Текущий прогресс</h6>
+                            <div class="progress mb-2" style="height: 25px;">
+                                <div class="progress-bar {% if goal.progress_percentage < 50 %}bg-warning{% elif goal.progress_percentage < 80 %}bg-info{% else %}bg-success{% endif %}" 
+                                     style="width: {{ goal.progress_percentage }}%">
+                                    {{ goal.progress_percentage }}%
+                                </div>
+                            </div>
+                            <div class="row text-center">
+                                <div class="col-6">
+                                    <small class="text-muted">Текущее:</small>
+                                    <div class="fw-bold text-primary">{{ goal.current_value }}</div>
+                                </div>
+                                <div class="col-6">
+                                    <small class="text-muted">Целевое:</small>
+                                    <div class="fw-bold text-success">{{ goal.target_value|default:"Не установлено" }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'campaign_goals' %}" class="btn btn-secondary me-md-2">
+                            <i class="fas fa-times me-2"></i>Отмена
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>{{ submit_text }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Подсказки по типам целей -->
+        <div class="card border-0 mt-4">
+            <div class="card-header bg-dark border-0">
+                <h6 class="mb-0"><i class="fas fa-lightbulb me-2"></i>Подсказки по типам целей</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <strong>🎯 Увеличение продаж</strong>
+                        <p class="small text-muted mb-0">Целевое значение: количество заказов или сумма выручки</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>🚀 Увеличение трафика</strong>
+                        <p class="small text-muted mb-0">Целевое значение: количество кликов или показов</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>📈 Повышение конверсии</strong>
+                        <p class="small text-muted mb-0">Целевое значение: процент конверсии (например, 5%)</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>🏆 Укрепление бренда</strong>
+                        <p class="small text-muted mb-0">Целевое значение: охват аудитории или узнаваемость</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>💰 Увеличение прибыли</strong>
+                        <p class="small text-muted mb-0">Целевое значение: сумма чистой прибыли в рублях</p>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <strong>📝 Другая цель</strong>
+                        <p class="small text-muted mb-0">Любая другая метрика, которую вы хотите отслеживать</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.form-control {
+    background: var(--light-black);
+    border: 1px solid var(--accent-gray);
+    color: var(--text-light);
+}
+
+.form-control:focus {
+    background: var(--light-black);
+    border-color: var(--primary-orange);
+    color: var(--text-light);
+    box-shadow: 0 0 0 0.2rem rgba(255, 107, 53, 0.25);
+}
+
+.form-label {
+    color: var(--text-light);
+}
+
+.form-text {
+    color: var(--text-muted) !important;
+}
+
+.progress {
+    background-color: var(--accent-gray);
+    border-radius: 12px;
+}
+
+.progress-bar {
+    border-radius: 12px;
+    transition: width 0.6s ease;
+}
+</style>
+{% endblock %}

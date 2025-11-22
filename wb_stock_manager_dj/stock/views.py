@@ -5,9 +5,14 @@ from django.db.models import Q
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from datetime import datetime, timedelta
+from django.shortcuts import render
+from django.core.exceptions import PermissionDenied
+from django.http import Http404
+from django.core.paginator import Paginator
 
-from .models import Product, UserProfile, StockMovement, AdvertisingCampaign, CampaignDailyStats
-from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm, CampaignDailyStatsForm, AdvertisingCampaignForm
+from .models import Product, UserProfile, StockMovement, AdvertisingCampaign, CampaignDailyStats, CampaignGoal, GoalNote
+
+from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm, CampaignDailyStatsForm, AdvertisingCampaignForm, CampaignGoalForm, GoalNoteForm, CampaignDailyStatsForm
 from .wb_parser import get_wb_simple_service, clear_wb_cache
 
 
@@ -33,7 +38,6 @@ def register(request):
             return redirect('stock_dashboard')
     else:
         form = CustomUserCreationForm()
-    
     return render(request, 'stock/register.html', {'form': form})
 
 def user_login(request):
@@ -155,6 +159,11 @@ def stock_dashboard(request):
     low_stock = len([p for p in products_list if 0 < p.current_stock < 10])
     out_of_stock = len([p for p in products_list if p.current_stock == 0])
     
+    # НОВАЯ СТАТИСТИКА: общие остатки и продажи
+    total_stock_all = sum(p.current_stock for p in products_list)
+    total_sales_all = sum(p.total_outgoing for p in products_list)
+    total_incoming_all = sum(p.total_incoming for p in products_list)
+    
     # Обновляем статистику пользователя
     update_user_statistics(request.user)
     
@@ -168,6 +177,10 @@ def stock_dashboard(request):
         'in_stock': in_stock,
         'low_stock': low_stock,
         'out_of_stock': out_of_stock,
+        # НОВЫЕ ДАННЫЕ:
+        'total_stock_all': total_stock_all,
+        'total_sales_all': total_sales_all,
+        'total_incoming_all': total_incoming_all,
     }
     return render(request, 'stock/stock_dashboard.html', context)
 
@@ -642,3 +655,188 @@ def advertising_analytics(request):
     }
     return render(request, 'stock/advertising_analytics.html', context)
 
+
+def bad_request(request, exception):
+    return render(request, 'stock/400.html', status=400)
+
+
+def permission_denied(request, exception):
+    return render(request, 'stock/403.html', status=403)
+
+
+def page_not_found(request, exception):
+    return render(request, 'stock/404.html', status=404)
+
+
+def server_error(request):
+    return render(request, 'stock/500.html', status=500)
+
+
+@login_required
+def campaign_goals(request):
+    """Страница целей рекламных кампаний"""
+    goals = CampaignGoal.objects.filter(user=request.user)
+    
+    # Фильтрация по статусу
+    status_filter = request.GET.get('status', 'active')
+    if status_filter and status_filter != 'all':
+        goals = goals.filter(status=status_filter)
+    
+    active_goals = goals.filter(status='active')
+    completed_goals = goals.filter(status='completed')
+    archived_goals = goals.filter(status='archived')
+    
+    context = {
+        'page_title': 'Цели рекламных кампаний',
+        'goals': goals,
+        'active_goals': active_goals,
+        'completed_goals': completed_goals,
+        'archived_goals': archived_goals,
+        'status_filter': status_filter,
+        'total_goals': goals.count(),
+        'active_count': active_goals.count(),
+        'completed_count': completed_goals.count(),
+        'archived_count': archived_goals.count(),
+    }
+    return render(request, 'stock/campaign_goals.html', context)
+
+
+@login_required
+def goal_create(request):
+    """Создание новой цели"""
+    if request.method == 'POST':
+        form = CampaignGoalForm(request.POST)
+        if form.is_valid():
+            goal = form.save(commit=False)
+            goal.user = request.user
+            goal.save()
+            form.save_m2m()  # Сохраняем связанные кампании
+            messages.success(request, f'Цель "{goal.title}" создана!')
+            return redirect('campaign_goals')
+    else:
+        form = CampaignGoalForm()
+        # Фильтруем кампании только текущего пользователя
+        form.fields['campaigns'].queryset = AdvertisingCampaign.objects.filter(user=request.user)
+    
+    context = {
+        'page_title': 'Создать цель',
+        'form': form,
+        'submit_text': 'Создать цель'
+    }
+    return render(request, 'stock/goal_form.html', context)
+
+
+@login_required
+def goal_detail(request, goal_id):
+    """Детальная страница цели с заметками"""
+    goal = get_object_or_404(CampaignGoal, id=goal_id, user=request.user)
+    notes = goal.notes.all().order_by('-created_at')
+    
+    # Форма для добавления заметки
+    if request.method == 'POST':
+        note_form = GoalNoteForm(request.POST)
+        if note_form.is_valid():
+            note = note_form.save(commit=False)
+            note.goal = goal
+            note.save()
+            messages.success(request, 'Заметка добавлена!')
+            return redirect('goal_detail', goal_id=goal_id)
+    else:
+        note_form = GoalNoteForm()
+    
+    # Форма для обновления прогресса
+    progress_form = CampaignGoalForm(instance=goal)
+    progress_form.fields['campaigns'].queryset = AdvertisingCampaign.objects.filter(user=request.user)
+    
+    context = {
+        'page_title': f'Цель: {goal.title}',
+        'goal': goal,
+        'notes': notes,
+        'note_form': note_form,
+        'progress_form': progress_form,
+    }
+    return render(request, 'stock/goal_detail.html', context)
+
+
+@login_required
+def goal_edit(request, goal_id):
+    """Редактирование цели"""
+    goal = get_object_or_404(CampaignGoal, id=goal_id, user=request.user)
+    
+    if request.method == 'POST':
+        form = CampaignGoalForm(request.POST, instance=goal)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f'Цель "{goal.title}" обновлена!')
+            return redirect('campaign_goals')
+    else:
+        form = CampaignGoalForm(instance=goal)
+        form.fields['campaigns'].queryset = AdvertisingCampaign.objects.filter(user=request.user)
+    
+    context = {
+        'page_title': f'Редактировать: {goal.title}',
+        'form': form,
+        'submit_text': 'Сохранить изменения',
+        'goal': goal
+    }
+    return render(request, 'stock/goal_form.html', context)
+
+
+@login_required
+def goal_update_progress(request, goal_id):
+    """Быстрое обновление прогресса цели"""
+    goal = get_object_or_404(CampaignGoal, id=goal_id, user=request.user)
+    
+    if request.method == 'POST':
+        current_value = request.POST.get('current_value')
+        if current_value:
+            try:
+                goal.current_value = float(current_value)
+                goal.save()
+                messages.success(request, f'Прогресс цели обновлен!')
+            except ValueError:
+                messages.error(request, 'Неверное значение прогресса')
+    
+    return redirect('goal_detail', goal_id=goal_id)
+
+
+@login_required
+def goal_archive(request, goal_id):
+    """Архивирование цели"""
+    goal = get_object_or_404(CampaignGoal, id=goal_id, user=request.user)
+    
+    if request.method == 'POST':
+        goal.status = 'archived'
+        goal.save()
+        messages.success(request, f'Цель "{goal.title}" перемещена в архив!')
+    
+    return redirect('campaign_goals')
+
+
+@login_required
+def goal_reactivate(request, goal_id):
+    """Восстановление цели из архива"""
+    goal = get_object_or_404(CampaignGoal, id=goal_id, user=request.user)
+    
+    if request.method == 'POST':
+        goal.status = 'active'
+        goal.save()
+        messages.success(request, f'Цель "{goal.title}" восстановлена!')
+    
+    return redirect('campaign_goals')
+
+
+@login_required
+def goal_delete(request, goal_id):
+    """Удаление цели"""
+    goal = get_object_or_404(CampaignGoal, id=goal_id, user=request.user)
+    
+    if request.method == 'POST':
+        goal_name = goal.title
+        goal.delete()
+        messages.success(request, f'Цель "{goal_name}" удалена!')
+        return redirect('campaign_goals')
+    
+    return render(request, 'stock/goal_confirm_delete.html', {
+        'goal': goal
+    })

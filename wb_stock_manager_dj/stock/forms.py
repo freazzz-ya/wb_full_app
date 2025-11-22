@@ -3,7 +3,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User  # Импортируем стандартного User
 from django.utils import timezone
-from .models import UserProfile, Product, StockMovement, CampaignDailyStats, AdvertisingCampaign
+from .models import UserProfile, Product, StockMovement, CampaignDailyStats, AdvertisingCampaign, GoalNote, CampaignGoal
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -94,6 +94,7 @@ class ProductForm(forms.ModelForm):
             'image': 'Фото товара',
             'purchase_date': 'Дата закупки'
         }
+
 
 class StockMovementForm(forms.ModelForm):
     """Форма для добавления движения товара"""
@@ -192,3 +193,45 @@ class CampaignDailyStatsForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         if not self.instance.pk:
             self.fields['date'].initial = timezone.now().date()
+
+
+class CampaignGoalForm(forms.ModelForm):
+    """Форма для создания/редактирования целей"""
+    class Meta:
+        model = CampaignGoal
+        fields = ['title', 'goal_type', 'description', 'target_value', 'current_value', 'deadline', 'campaigns']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Название цели'}),
+            'goal_type': forms.Select(attrs={'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'class': 'form-control', 'rows': 3, 'placeholder': 'Подробное описание цели...'}),
+            'target_value': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Целевое значение'}),
+            'current_value': forms.NumberInput(attrs={'class': 'form-control', 'placeholder': 'Текущее значение'}),
+            'deadline': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'campaigns': forms.CheckboxSelectMultiple(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+        labels = {
+            'title': 'Название цели',
+            'goal_type': 'Тип цели',
+            'description': 'Описание цели',
+            'target_value': 'Целевое значение',
+            'current_value': 'Текущее значение',
+            'deadline': 'Дедлайн',
+            'campaigns': 'Связанные кампании',
+        }
+
+
+class GoalNoteForm(forms.ModelForm):
+    """Форма для заметок к целям"""
+    class Meta:
+        model = GoalNote
+        fields = ['title', 'content']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Заголовок заметки'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 8, 'placeholder': 'Подробное содержание заметки...'}),
+        }
+        labels = {
+            'title': 'Заголовок',
+            'content': 'Содержание',
+        }

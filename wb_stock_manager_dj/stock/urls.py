@@ -29,4 +29,12 @@ urlpatterns = [
     path('advertising/campaigns/<int:campaign_id>/edit/', views.campaign_edit, name='campaign_edit'),
     path('advertising/campaigns/<int:campaign_id>/delete/', views.campaign_delete, name='campaign_delete'),
     path('advertising/analytics/', views.advertising_analytics, name='advertising_analytics'),
+    path('advertising/goals/', views.campaign_goals, name='campaign_goals'),
+    path('advertising/goals/add/', views.goal_create, name='goal_create'),
+    path('advertising/goals/<int:goal_id>/', views.goal_detail, name='goal_detail'),
+    path('advertising/goals/<int:goal_id>/edit/', views.goal_edit, name='goal_edit'),
+    path('advertising/goals/<int:goal_id>/update-progress/', views.goal_update_progress, name='goal_update_progress'),
+    path('advertising/goals/<int:goal_id>/archive/', views.goal_archive, name='goal_archive'),
+    path('advertising/goals/<int:goal_id>/reactivate/', views.goal_reactivate, name='goal_reactivate'),
+    path('advertising/goals/<int:goal_id>/delete/', views.goal_delete, name='goal_delete'),
 ]

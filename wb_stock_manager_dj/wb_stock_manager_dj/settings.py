@@ -10,7 +10,7 @@ ENCRYPTION_KEY = Fernet.generate_key()
 # Настройки безопасности - ЗАМЕНИТЕ этот ключ на случайный в продакшене!
 SECRET_KEY = 'django-insecure-your-secret-key-change-this-in-production'
 
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
@@ -27,6 +27,25 @@ INSTALLED_APPS = [
     'stock',  # наше приложение
 ]
 
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'file': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': 'django_errors.log',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['file'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    },
+}
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -35,6 +54,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'stock.middleware.ErrorHandlerMiddleware',
 ]
 
 ROOT_URLCONF = 'wb_stock_manager_dj.urls'
@@ -86,6 +106,8 @@ STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Настройки аутентификации
@@ -99,3 +121,8 @@ CACHES = {
         'LOCATION': 'unique-snowflake',
     }
 }
+
+handler400 = 'stock.views.bad_request'
+handler403 = 'stock.views.permission_denied'
+handler404 = 'stock.views.page_not_found'
+handler500 = 'stock.views.server_error'

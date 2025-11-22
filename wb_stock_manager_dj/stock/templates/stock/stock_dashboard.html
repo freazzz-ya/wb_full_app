@@ -5,7 +5,7 @@
 {% block content %}
 <!-- Заголовок и кнопки -->
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>📊 {{ page_title }}</h1>
+    <h1><i class="fas fa-cubes me-2 text-info"></i>{{ page_title }}</h1>
     <div>
         <a href="{% url 'product_add' %}" class="btn btn-primary me-2">
             <i class="fas fa-plus me-2"></i>Добавить товар
@@ -18,7 +18,7 @@
 
 <!-- Карточки статистики -->
 <div class="row mb-4">
-    <div class="col-xl-3 col-md-6 mb-3">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
         <div class="card h-100 border-0">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -33,7 +33,37 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="icon-wrapper">
+                        <i class="fas fa-boxes text-info"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title text-muted mb-1">Общий остаток</h6>
+                        <h3 class="mb-0 text-light">{{ total_stock_all }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
+        <div class="card h-100 border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center">
+                    <div class="icon-wrapper">
+                        <i class="fas fa-shopping-cart text-success"></i>
+                    </div>
+                    <div>
+                        <h6 class="card-title text-muted mb-1">Всего продаж</h6>
+                        <h3 class="mb-0 text-light">{{ total_sales_all }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
         <div class="card h-100 border-0">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -48,7 +78,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
         <div class="card h-100 border-0">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -63,7 +93,7 @@
             </div>
         </div>
     </div>
-    <div class="col-xl-3 col-md-6 mb-3">
+    <div class="col-xl-2 col-md-4 col-sm-6 mb-3">
         <div class="card h-100 border-0">
             <div class="card-body">
                 <div class="d-flex align-items-center">
@@ -73,6 +103,30 @@
                     <div>
                         <h6 class="card-title text-muted mb-1">Нет в наличии</h6>
                         <h3 class="mb-0 text-light">{{ out_of_stock }}</h3>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Дополнительная статистика -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card border-0">
+            <div class="card-body py-3">
+                <div class="row text-center">
+                    <div class="col-md-4 border-end border-accent">
+                        <small class="text-muted">Общий приход товаров</small>
+                        <div class="h5 mb-0 text-success">+{{ total_incoming_all }}</div>
+                    </div>
+                    <div class="col-md-4 border-end border-accent">
+                        <small class="text-muted">Общий расход товаров</small>
+                        <div class="h5 mb-0 text-danger">-{{ total_sales_all }}</div>
+                    </div>
+                    <div class="col-md-4">
+                        <small class="text-muted">Оборот товаров</small>
+                        <div class="h5 mb-0 text-info">{{ total_incoming_all|add:total_sales_all }}</div>
                     </div>
                 </div>
             </div>
@@ -120,103 +174,109 @@
             </div>
             
             <!-- Сортировка -->
-<div class="col-md-4">
-    <div class="btn-group w-100">
-<button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-    <i class="fas fa-sort me-1"></i>
-    {% if current_sort == '-purchase_date' %}Новые{% endif %}
-    {% if current_sort == 'purchase_date' %}Старые{% endif %}
-    {% if current_sort == '-current_stock' %}Много→Мало{% endif %}
-    {% if current_sort == 'current_stock' %}Мало→Много{% endif %}
-    {% if current_sort == 'name' %}А-Я{% endif %}
-    {% if current_sort == '-name' %}Я-А{% endif %}
-    {% if current_sort == '-days_in_stock' %}Долго{% endif %}
-    {% if current_sort == 'days_in_stock' %}Недавно{% endif %}
-    {% if not current_sort or current_sort == '-purchase_date' %}Сортировка{% endif %}
-</button>
-        <ul class="dropdown-menu" style="background: var(--light-black); border: 1px solid var(--accent-gray);">
-            <li>
-                <a class="dropdown-item {% if current_sort == '-purchase_date' %}active{% endif %}" 
-                   href="?sort=-purchase_date{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-calendar-alt me-2"></i>Сначала новые
-                </a>
-            </li>
-            <li>
-                <a class="dropdown-item {% if current_sort == 'purchase_date' %}active{% endif %}" 
-                   href="?sort=purchase_date{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-calendar me-2"></i>Сначала старые
-                </a>
-            </li>
-            <li><hr class="dropdown-divider" style="border-color: var(--accent-gray);"></li>
-            <li>
-                <a class="dropdown-item {% if current_sort == '-current_stock' %}active{% endif %}" 
-                   href="?sort=-current_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-sort-amount-down me-2"></i>Остатки (много → мало)
-                </a>
-            </li>
-            <li>
-                <a class="dropdown-item {% if current_sort == 'current_stock' %}active{% endif %}" 
-                   href="?sort=current_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-sort-amount-up me-2"></i>Остатки (мало → много)
-                </a>
-            </li>
-            <li><hr class="dropdown-divider" style="border-color: var(--accent-gray);"></li>
-            <li>
-                <a class="dropdown-item {% if current_sort == 'name' %}active{% endif %}" 
-                   href="?sort=name{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-sort-alpha-down me-2"></i>Название А-Я
-                </a>
-            </li>
-            <li>
-                <a class="dropdown-item {% if current_sort == '-name' %}active{% endif %}" 
-                   href="?sort=-name{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-sort-alpha-up me-2"></i>Название Я-А
-                </a>
-            </li>
-            <li><hr class="dropdown-divider" style="border-color: var(--accent-gray);"></li>
-            <li>
-                <a class="dropdown-item {% if current_sort == '-days_in_stock' %}active{% endif %}" 
-                   href="?sort=-days_in_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-clock me-2"></i>Долго на складе
-                </a>
-            </li>
-            <li>
-                <a class="dropdown-item {% if current_sort == 'days_in_stock' %}active{% endif %}" 
-                   href="?sort=days_in_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
-                   style="color: var(--text-light);">
-                    <i class="fas fa-history me-2"></i>Недавно добавлены
-                </a>
-            </li>
-        </ul>
+            <div class="col-md-4">
+                <div class="btn-group w-100">
+                    <button type="button" class="btn btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fas fa-sort me-1"></i>
+                        {% if current_sort == '-purchase_date' %}Новые{% endif %}
+                        {% if current_sort == 'purchase_date' %}Старые{% endif %}
+                        {% if current_sort == '-current_stock' %}Много→Мало{% endif %}
+                        {% if current_sort == 'current_stock' %}Мало→Много{% endif %}
+                        {% if current_sort == 'name' %}А-Я{% endif %}
+                        {% if current_sort == '-name' %}Я-А{% endif %}
+                        {% if current_sort == '-days_in_stock' %}Долго{% endif %}
+                        {% if current_sort == 'days_in_stock' %}Недавно{% endif %}
+                        {% if not current_sort or current_sort == '-purchase_date' %}Сортировка{% endif %}
+                    </button>
+                    <ul class="dropdown-menu" style="background: var(--light-black); border: 1px solid var(--accent-gray);">
+                        <li>
+                            <a class="dropdown-item {% if current_sort == '-purchase_date' %}active{% endif %}" 
+                               href="?sort=-purchase_date{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-calendar-alt me-2"></i>Сначала новые
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == 'purchase_date' %}active{% endif %}" 
+                               href="?sort=purchase_date{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-calendar me-2"></i>Сначала старые
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" style="border-color: var(--accent-gray);"></li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == '-current_stock' %}active{% endif %}" 
+                               href="?sort=-current_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-sort-amount-down me-2"></i>Остатки (много → мало)
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == 'current_stock' %}active{% endif %}" 
+                               href="?sort=current_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-sort-amount-up me-2"></i>Остатки (мало → много)
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" style="border-color: var(--accent-gray);"></li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == 'name' %}active{% endif %}" 
+                               href="?sort=name{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-sort-alpha-down me-2"></i>Название А-Я
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == '-name' %}active{% endif %}" 
+                               href="?sort=-name{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-sort-alpha-up me-2"></i>Название Я-А
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider" style="border-color: var(--accent-gray);"></li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == '-days_in_stock' %}active{% endif %}" 
+                               href="?sort=-days_in_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-clock me-2"></i>Долго на складе
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item {% if current_sort == 'days_in_stock' %}active{% endif %}" 
+                               href="?sort=days_in_stock{% if search_query %}&search={{ search_query }}{% endif %}{% if stock_filter %}&stock={{ stock_filter }}{% endif %}"
+                               style="color: var(--text-light);">
+                                <i class="fas fa-history me-2"></i>Недавно добавлены
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        {% if current_sort %}
+        <div class="row mt-2">
+            <div class="col-12">
+                <small class="text-muted">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Сортировка: 
+                    {% if current_sort == '-purchase_date' %}Сначала новые{% endif %}
+                    {% if current_sort == 'purchase_date' %}Сначала старые{% endif %}
+                    {% if current_sort == '-current_stock' %}Остатки (много → мало){% endif %}
+                    {% if current_sort == 'current_stock' %}Остатки (мало → много){% endif %}
+                    {% if current_sort == 'name' %}Название А-Я{% endif %}
+                    {% if current_sort == '-name' %}Название Я-А{% endif %}
+                    {% if current_sort == '-days_in_stock' %}Долго на складе{% endif %}
+                    {% if current_sort == 'days_in_stock' %}Недавно добавлены{% endif %}
+                    
+                    {% if search_query %} | Поиск: "{{ search_query }}"{% endif %}
+                    {% if stock_filter == 'low' %} | Фильтр: Мало осталось{% endif %}
+                    {% if stock_filter == 'out' %} | Фильтр: Нет в наличии{% endif %}
+                    {% if stock_filter == 'normal' %} | Фильтр: В наличии{% endif %}
+                </small>
+            </div>
+        </div>
+        {% endif %}
     </div>
-    {% if current_sort %}
-<div class="col-12 mt-2">
-    <small class="text-muted">
-        <i class="fas fa-info-circle me-1"></i>
-        Сортировка: 
-        {% if current_sort == '-purchase_date' %}Сначала новые{% endif %}
-        {% if current_sort == 'purchase_date' %}Сначала старые{% endif %}
-        {% if current_sort == '-current_stock' %}Остатки (много → мало){% endif %}
-        {% if current_sort == 'current_stock' %}Остатки (мало → много){% endif %}
-        {% if current_sort == 'name' %}Название А-Я{% endif %}
-        {% if current_sort == '-name' %}Название Я-А{% endif %}
-        {% if current_sort == '-days_in_stock' %}Долго на складе{% endif %}
-        {% if current_sort == 'days_in_stock' %}Недавно добавлены{% endif %}
-        
-        {% if search_query %} | Поиск: "{{ search_query }}"{% endif %}
-        {% if stock_filter == 'low' %} | Фильтр: Мало осталось{% endif %}
-        {% if stock_filter == 'out' %} | Фильтр: Нет в наличии{% endif %}
-        {% if stock_filter == 'normal' %} | Фильтр: В наличии{% endif %}
-    </small>
-</div>
-{% endif %}
 </div>
 
 <!-- Таблица -->
@@ -309,6 +369,24 @@
                         </td>
                     </tr>
                     {% endfor %}
+
+                    {% if products %}
+                    <!-- Общая строка статистики -->
+                    <tr class="bg-dark" style="border-top: 2px solid var(--primary-orange);">
+                        <td colspan="5" class="text-end fw-bold" style="color: var(--text-light);">
+                            ИТОГО:
+                        </td>
+                        <td class="fw-bold" style="color: var(--text-light);">
+                            {{ total_products }} шт.
+                        </td>
+                        <td class="text-success fw-bold">+{{ total_incoming_all }}</td>
+                        <td class="text-danger fw-bold">-{{ total_sales_all }}</td>
+                        <td class="fw-bold" style="color: var(--text-light);">
+                            {{ total_stock_all }} шт.
+                        </td>
+                        <td></td>
+                    </tr>
+                    {% endif %}
                 </tbody>
             </table>
         </div>
@@ -445,6 +523,10 @@ function loadChartData(productId) {
 
 .toggle-chart:hover {
     background: rgba(255, 107, 53, 0.2);
+}
+
+.border-accent {
+    border-color: var(--accent-gray) !important;
 }
 </style>
 {% endblock %}

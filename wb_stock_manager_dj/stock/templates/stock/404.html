@@ -1,0 +1,30 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Страница не найдена - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6 text-center">
+        <div class="card">
+            <div class="card-body p-5">
+                <div class="display-1 text-primary mb-4">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h1 class="display-4 fw-bold mb-3">404</h1>
+                <h2 class="h3 mb-4">Страница не найдена</h2>
+                <p class="lead mb-4">
+                    Запрашиваемая страница не существует или была перемещена.
+                </p>
+                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                    <a href="{% url 'home' %}" class="btn btn-primary btn-lg px-4 gap-3">
+                        <i class="fas fa-home me-2"></i>На главную
+                    </a>
+                    <a href="javascript:history.back()" class="btn btn-outline-primary btn-lg px-4">
+                        <i class="fas fa-arrow-left me-2"></i>Назад
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

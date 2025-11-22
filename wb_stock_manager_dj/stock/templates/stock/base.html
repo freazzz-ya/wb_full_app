@@ -299,6 +299,9 @@
     <a class="nav-link" href="{% url 'analytics_dashboard' %}">
         <i class="fas fa-chart-line me-1"></i>Аналитика
     </a>
+    <a class="nav-link" href="{% url 'campaign_goals' %}">
+    <i class="fas fa-bullseye me-1"></i>Мои цели
+</a>
     <a class="nav-link" href="{% url 'documentation' %}">
         <i class="fas fa-book me-1"></i>Документация
     </a>
@@ -350,6 +353,23 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Select2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/i18n/ru.js"></script>
+
+<script>
+// Инициализация Select2 для множественного выбора
+$(document).ready(function() {
+    $('select[multiple]').select2({
+        language: 'ru',
+        placeholder: 'Выберите кампании',
+        allowClear: true,
+        width: '100%'
+    });
+});
+</script>
 </body>
 </html>
 <style>
