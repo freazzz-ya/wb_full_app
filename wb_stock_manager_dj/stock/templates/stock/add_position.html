@@ -1,0 +1,119 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Добавить позицию - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-lg-6">
+        <div class="card border-0">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-4">
+                    <a href="{% url 'product_keywords' keyword.product.id %}" class="btn btn-outline-secondary me-3">
+                        <i class="fas fa-arrow-left"></i>
+                    </a>
+                    <div>
+                        <h1 class="mb-1"><i class="fas fa-plus me-2 text-success"></i>Добавить позицию</h1>
+                        <small class="text-muted">
+                            Товар: {{ keyword.product.name }} | Ключевое слово: {{ keyword.keyword }}
+                        </small>
+                    </div>
+                </div>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-light">Позиция в поиске</label>
+                        {{ form.position }}
+                        <div class="form-text text-muted">
+                            Укажите позицию товара в поиске по ключевому слову.<br>
+                            <strong>0</strong> = товар не найден в поиске
+                        </div>
+                        {% if form.position.errors %}
+                            <div class="text-danger small mt-1">{{ form.position.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-light">Дата проверки</label>
+                        {{ form.checked_at }}
+                        <div class="form-text text-muted">
+                            Дата, на которую актуальна указанная позиция
+                        </div>
+                        {% if form.checked_at.errors %}
+                            <div class="text-danger small mt-1">{{ form.checked_at.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'product_keywords' keyword.product.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Отмена
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Сохранить позицию
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- История последних позиций -->
+                {% with last_positions=keyword.tracking.all|slice:":5" %}
+                {% if last_positions %}
+                <div class="mt-5">
+                    <h6 class="text-light mb-3">
+                        <i class="fas fa-history me-2 text-info"></i>Последние позиции
+                    </h6>
+                    
+                    <div class="list-group">
+                        {% for track in last_positions %}
+                        <div class="list-group-item bg-dark border-secondary mb-2">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="
+                                        {% if track.position == 0 %}text-danger
+                                        {% elif track.position <= 10 %}text-success
+                                        {% elif track.position <= 50 %}text-info
+                                        {% elif track.position <= 100 %}text-warning
+                                        {% else %}text-secondary{% endif %}">
+                                        {% if track.position == 0 %}
+                                            Не найден
+                                        {% else %}
+                                            Позиция {{ track.position }}
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="text-muted small">
+                                    {{ track.checked_at|date:"d.m.Y" }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Автоматическая фокусировка на поле позиции
+document.addEventListener('DOMContentLoaded', function() {
+    const positionInput = document.getElementById('{{ form.position.id_for_label }}');
+    if (positionInput) {
+        positionInput.focus();
+        positionInput.select();
+    }
+    
+    // Авто-отправка формы по Enter
+    if (positionInput) {
+        positionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.submit();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,176 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Редактировать ключевое слово - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'product_keywords' keyword.product.id %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="mb-1"><i class="fas fa-edit me-2 text-warning"></i>{{ page_title }}</h1>
+            <small class="text-muted">
+                Товар: {{ keyword.product.name }} ({{ keyword.product.article }})
+            </small>
+        </div>
+    </div>
+</div>
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card border-0">
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <h5 class="text-light mb-3">
+                            <i class="fas fa-info-circle me-2 text-info"></i>Основная информация
+                        </h5>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light">Ключевое слово</label>
+                            {{ form.keyword }}
+                            {% if form.keyword.errors %}
+                                <div class="text-danger small mt-1">{{ form.keyword.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label text-light">Целевая позиция</label>
+                            {{ form.target_position }}
+                            <div class="form-text text-muted">
+                                Укажите 0 если цель не задана. Например: 10 для попадания в топ-10
+                            </div>
+                            {% if form.target_position.errors %}
+                                <div class="text-danger small mt-1">{{ form.target_position.errors }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-check form-switch mb-3">
+                            {{ form.is_active }}
+                            <label class="form-check-label text-light" for="{{ form.is_active.id_for_label }}">
+                                Активно для отслеживания
+                            </label>
+                        </div>
+                    </div>
+                    
+                    {% if keyword.tracking.exists %}
+                    <div class="mb-4">
+                        <h5 class="text-light mb-3">
+                            <i class="fas fa-chart-line me-2 text-primary"></i>Текущая статистика
+                        </h5>
+                        
+                        <div class="row text-center">
+                            <div class="col-md-3 mb-3">
+                                <div class="bg-dark rounded p-3 border border-secondary">
+                                    <div class="h4 mb-1 
+                                        {% if keyword.current_position <= 10 %}text-success
+                                        {% elif keyword.current_position <= 50 %}text-info
+                                        {% elif keyword.current_position <= 100 %}text-warning
+                                        {% elif keyword.current_position %}text-secondary
+                                        {% else %}text-danger{% endif %}">
+                                        {{ keyword.current_position|default:"-" }}
+                                    </div>
+                                    <small class="text-muted">Текущая</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="bg-dark rounded p-3 border border-secondary">
+                                    <div class="h4 mb-1 text-info">
+                                        {{ keyword.average_position|default:"-" }}
+                                    </div>
+                                    <small class="text-muted">Средняя</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="bg-dark rounded p-3 border border-secondary">
+                                    <div class="h4 mb-1 text-success">
+                                        {{ keyword.best_position|default:"-" }}
+                                    </div>
+                                    <small class="text-muted">Лучшая</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-3 mb-3">
+                                <div class="bg-dark rounded p-3 border border-secondary">
+                                    <div class="h4 mb-1 text-warning">
+                                        {{ keyword.worst_position|default:"-" }}
+                                    </div>
+                                    <small class="text-muted">Худшая</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'product_keywords' keyword.product.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times me-1"></i>Отмена
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>{{ submit_text }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        {% if keyword.tracking.exists %}
+        <div class="card border-0 mt-4">
+            <div class="card-body">
+                <h5 class="card-title text-light mb-3">
+                    <i class="fas fa-history me-2 text-info"></i>Последние проверки
+                </h5>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Позиция</th>
+                                <th>Страница</th>
+                                <th>Всего найдено</th>
+                                <th>Дата проверки</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for track in keyword.tracking.all|slice:":5" %}
+                            <tr>
+                                <td>
+                                    {% if track.position == 0 %}
+                                        <span class="badge bg-danger">Не найден</span>
+                                    {% elif track.position <= 10 %}
+                                        <span class="badge bg-success">{{ track.position }}</span>
+                                    {% elif track.position <= 50 %}
+                                        <span class="badge bg-info">{{ track.position }}</span>
+                                    {% elif track.position <= 100 %}
+                                        <span class="badge bg-warning">{{ track.position }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ track.position }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ track.page }}</td>
+                                <td>{{ track.total_found|default:"-" }}</td>
+                                <td>{{ track.checked_at|date:"d.m.Y H:i" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                {% if keyword.tracking.count > 5 %}
+                <div class="text-center mt-3">
+                    <a href="{% url 'keyword_tracking_history' keyword.id %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-history me-1"></i>Вся история
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

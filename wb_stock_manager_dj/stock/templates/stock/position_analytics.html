@@ -1,0 +1,557 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Аналитика позиций - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'position_dashboard' %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="mb-0"><i class="fas fa-chart-bar me-2 text-info"></i>{{ page_title }}</h1>
+    </div>
+    <div>
+        <a href="{% url 'position_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-search me-1"></i>К позициям
+        </a>
+    </div>
+</div>
+
+<!-- Карточки общей статистики -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-primary">
+                    {{ position_distribution.top10|add:position_distribution.top50|add:position_distribution.top100|add:position_distribution.top200 }}
+                </div>
+                <small class="text-muted">Всего в топе</small>
+                <div class="small text-muted mt-1">
+                    <span class="text-success">Топ-10: {{ position_distribution.top10 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-warning">{{ position_distribution.not_found }}</div>
+                <small class="text-muted">Не найдено</small>
+                <div class="small text-muted mt-1">
+                    Вне топ-200
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-success">{{ target_stats.achieved|default:0 }}</div>
+                <small class="text-muted">Целей достигнуто</small>
+                <div class="small text-muted mt-1">
+                    из {{ target_stats.total_targets|default:0 }}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-info">
+                    {% if target_stats.total_targets > 0 %}
+                        {{ target_stats.achieved|default:0|floatformat:0 }}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+                <small class="text-muted">Успешность целей</small>
+                <div class="small text-muted mt-1">
+                    {{ target_stats.not_achieved|default:0 }} не достигнуто
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Графики -->
+<div class="row mb-4">
+    <!-- Распределение позиций -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-chart-pie me-2 text-primary"></i>Распределение позиций
+                </h5>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="distributionChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Динамика целей -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-bullseye me-2 text-warning"></i>Достижение целей
+                </h5>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="targetsChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Два столбца: улучшающиеся и ухудшающиеся -->
+<div class="row mb-4">
+    <!-- Улучшающиеся позиции -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-up text-success me-2"></i>Улучшающиеся позиции
+                    </h5>
+                    <span class="badge bg-success">{{ improving_keywords|length }}</span>
+                </div>
+                
+                {% if improving_keywords %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th>Ключевое слово</th>
+                                <th>Изменение</th>
+                                <th>Текущая</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in improving_keywords %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'product_keywords' item.keyword.product.id %}" 
+                                       class="text-decoration-none text-light">
+                                        {{ item.keyword.product.name|truncatechars:20 }}
+                                    </a>
+                                </td>
+                                <td>{{ item.keyword.keyword|truncatechars:20 }}</td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-arrow-up me-1"></i>+{{ item.change }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.current <= 10 %}
+                                        <span class="badge bg-success">{{ item.current }}</span>
+                                    {% elif item.current <= 50 %}
+                                        <span class="badge bg-info">{{ item.current }}</span>
+                                    {% elif item.current <= 100 %}
+                                        <span class="badge bg-warning">{{ item.current }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ item.current }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-chart-line fa-2x mb-3"></i>
+                    <p>Нет улучшающихся позиций</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ухудшающиеся позиции -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-arrow-down text-danger me-2"></i>Ухудшающиеся позиции
+                    </h5>
+                    <span class="badge bg-danger">{{ declining_keywords|length }}</span>
+                </div>
+                
+                {% if declining_keywords %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th>Ключевое слово</th>
+                                <th>Изменение</th>
+                                <th>Текущая</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in declining_keywords %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'product_keywords' item.keyword.product.id %}" 
+                                       class="text-decoration-none text-light">
+                                        {{ item.keyword.product.name|truncatechars:20 }}
+                                    </a>
+                                </td>
+                                <td>{{ item.keyword.keyword|truncatechars:20 }}</td>
+                                <td>
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-arrow-down me-1"></i>-{{ item.change }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if item.current <= 10 %}
+                                        <span class="badge bg-success">{{ item.current }}</span>
+                                    {% elif item.current <= 50 %}
+                                        <span class="badge bg-info">{{ item.current }}</span>
+                                    {% elif item.current <= 100 %}
+                                        <span class="badge bg-warning">{{ item.current }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ item.current }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-chart-line fa-2x mb-3"></i>
+                    <p>Нет ухудшающихся позиций</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Популярные ключевые слова -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-fire me-2 text-warning"></i>Популярные ключевые слова
+        </h5>
+        
+        <div class="row">
+            {% for item in popular_keywords %}
+            <div class="col-md-4 col-lg-3 mb-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body">
+                        <h6 class="mb-2">{{ item.keyword|truncatechars:25 }}</h6>
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small">Используется</span>
+                            <span class="badge bg-primary">{{ item.count }} раз</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-4 text-muted">
+                <i class="fas fa-key fa-2x mb-3"></i>
+                <p>Нет данных о популярных ключевых словах</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Детальная аналитика по диапазонам -->
+<div class="card border-0">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-chart-area me-2 text-primary"></i>Детальная аналитика по диапазонам
+        </h5>
+        
+        <div class="row text-center">
+            <div class="col-md-3 mb-3">
+                <div class="bg-dark rounded p-4 border border-success">
+                    <div class="h1 mb-2 text-success">{{ position_distribution.top10 }}</div>
+                    <div class="h6 text-light">Топ-10</div>
+                    <small class="text-muted">Элитные позиции</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="bg-dark rounded p-4 border border-info">
+                    <div class="h1 mb-2 text-info">{{ position_distribution.top50 }}</div>
+                    <div class="h6 text-light">Топ-11-50</div>
+                    <small class="text-muted">Хорошие позиции</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="bg-dark rounded p-4 border border-warning">
+                    <div class="h1 mb-2 text-warning">{{ position_distribution.top100 }}</div>
+                    <div class="h6 text-light">Топ-51-100</div>
+                    <small class="text-muted">Средние позиции</small>
+                </div>
+            </div>
+            
+            <div class="col-md-3 mb-3">
+                <div class="bg-dark rounded p-4 border border-secondary">
+                    <div class="h1 mb-2 text-secondary">{{ position_distribution.top200 }}</div>
+                    <div class="h6 text-light">Топ-101-200</div>
+                    <small class="text-muted">Низкие позиции</small>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Прогресс бар -->
+        <div class="mt-4">
+            <h6 class="text-light mb-3">Распределение по диапазонам</h6>
+            <div class="progress mb-3" style="height: 30px;">
+                <div class="progress-bar bg-success" role="progressbar" 
+                     style="width: {% widthratio position_distribution.top10 total_keywords 100 %}%">
+                    Топ-10
+                </div>
+                <div class="progress-bar bg-info" role="progressbar" 
+                     style="width: {% widthratio position_distribution.top50 total_keywords 100 %}%">
+                    Топ-50
+                </div>
+                <div class="progress-bar bg-warning" role="progressbar" 
+                     style="width: {% widthratio position_distribution.top100 total_keywords 100 %}%">
+                    Топ-100
+                </div>
+                <div class="progress-bar bg-secondary" role="progressbar" 
+                     style="width: {% widthratio position_distribution.top200 total_keywords 100 %}%">
+                    Топ-200
+                </div>
+            </div>
+            
+            <div class="row text-center small">
+                <div class="col-3">
+                    <span class="text-success">Топ-10: {{ position_distribution.top10 }}</span>
+                </div>
+                <div class="col-3">
+                    <span class="text-info">Топ-50: {{ position_distribution.top50 }}</span>
+                </div>
+                <div class="col-3">
+                    <span class="text-warning">Топ-100: {{ position_distribution.top100 }}</span>
+                </div>
+                <div class="col-3">
+                    <span class="text-secondary">Топ-200: {{ position_distribution.top200 }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// График распределения позиций
+const distCtx = document.getElementById('distributionChart').getContext('2d');
+const distributionChart = new Chart(distCtx, {
+    type: 'doughnut',
+    data: {
+        labels: ['Топ-10', 'Топ-50', 'Топ-100', 'Топ-200', 'Не найдено'],
+        datasets: [{
+            data: [
+                {{ position_distribution.top10 }},
+                {{ position_distribution.top50 }},
+                {{ position_distribution.top100 }},
+                {{ position_distribution.top200 }},
+                {{ position_distribution.not_found }}
+            ],
+            backgroundColor: [
+                '#28a745', // Топ-10 - зеленый
+                '#20c997', // Топ-50 - бирюзовый
+                '#ffc107', // Топ-100 - желтый
+                '#6c757d', // Топ-200 - серый
+                '#dc3545'  // Не найдено - красный
+            ],
+            borderColor: 'rgba(0, 0, 0, 0.1)',
+            borderWidth: 2
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'right',
+                labels: {
+                    color: '#f8f9fa',
+                    padding: 20,
+                    font: {
+                        size: 12
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        const label = context.label || '';
+                        const value = context.raw || 0;
+                        const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                        const percentage = Math.round((value / total) * 100);
+                        return `${label}: ${value} (${percentage}%)`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// График целей
+const targetsCtx = document.getElementById('targetsChart').getContext('2d');
+const targetsChart = new Chart(targetsCtx, {
+    type: 'bar',
+    data: {
+        labels: ['Достигнуто', 'Не достигнуто', 'Без цели'],
+        datasets: [{
+            label: 'Ключевых слов',
+            data: [
+                {{ target_stats.achieved|default:0 }},
+                {{ target_stats.not_achieved|default:0 }},
+                {{ target_stats.total_targets|default:0|add:"-"|add:target_stats.achieved|default:0|add:"-"|add:target_stats.not_achieved|default:0|abs }}
+            ],
+            backgroundColor: [
+                '#28a745', // Достигнуто - зеленый
+                '#dc3545', // Не достигнуто - красный
+                '#6c757d'  // Без цели - серый
+            ],
+            borderColor: 'rgba(0, 0, 0, 0.1)',
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd',
+                    stepSize: 1
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    color: '#adb5bd'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                display: false
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        return `${context.dataset.label}: ${context.raw}`;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Автоматическое обновление данных каждые 5 минут
+setTimeout(function() {
+    window.location.reload();
+}, 300000); // 5 минут
+
+// Анимация при скролле
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.card');
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('fade-in');
+            }
+        });
+    }, { threshold: 0.1 });
+    
+    cards.forEach(card => observer.observe(card));
+});
+</script>
+
+<style>
+/* Дополнительные стили для аналитики */
+.progress {
+    background-color: var(--light-black);
+    border: 1px solid var(--accent-gray);
+    overflow: hidden;
+}
+
+.progress-bar {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: width 0.6s ease;
+}
+
+/* Анимация для карточек */
+.card {
+    animation: slideUp 0.5s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Стили для графиков */
+.chart-container canvas {
+    max-width: 100%;
+}
+
+/* Стили для таблиц */
+.table th {
+    background: linear-gradient(135deg, var(--primary-black), var(--light-black));
+    color: var(--text-muted);
+    border-bottom: 2px solid var(--primary-orange);
+}
+
+/* Кастомные тени для карточек */
+.card {
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 8px 25px rgba(255, 107, 53, 0.15);
+    transform: translateY(-2px);
+}
+
+/* Стили для градиентных границ */
+.border-success {
+    border-color: #28a745 !important;
+}
+
+.border-info {
+    border-color: #20c997 !important;
+}
+
+.border-warning {
+    border-color: #ffc107 !important;
+}
+
+.border-secondary {
+    border-color: #6c757d !important;
+}
+</style>
+{% endblock %}

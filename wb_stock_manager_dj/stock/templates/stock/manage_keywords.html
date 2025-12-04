@@ -1,0 +1,187 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'position_tracking' %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="mb-1"><i class="fas fa-key me-2 text-info"></i>{{ page_title }}</h1>
+            <div class="d-flex align-items-center">
+                <small class="text-muted me-3">
+                    <i class="fas fa-barcode me-1"></i>Арт: {{ product.article }}
+                </small>
+                <small class="text-muted">
+                    <i class="fas fa-cubes me-1"></i>Остаток: {{ product.current_stock }}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'stock_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-cubes me-1"></i>К остаткам
+        </a>
+    </div>
+</div>
+
+<!-- Форма добавления ключевого слова -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-plus-circle me-2 text-success"></i>Добавить ключевое слово
+        </h5>
+        
+        <form method="post" class="row g-3">
+            {% csrf_token %}
+            
+            <div class="col-md-10">
+                <label class="form-label text-light">Новое ключевое слово</label>
+                {{ form.keyword }}
+            </div>
+            
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-plus me-1"></i>Добавить
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Список ключевых слов -->
+<div class="card border-0">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-list me-2 text-primary"></i>Ключевые слова товара
+            <span class="badge bg-dark ms-2">{{ keywords.count }}</span>
+        </h5>
+        
+        {% if keywords %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Ключевое слово</th>
+                        <th>Текущая позиция</th>
+                        <th>Последняя проверка</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for keyword in keywords %}
+                    <tr>
+                        <td>
+                            <strong>{{ keyword.keyword }}</strong>
+                            {% if not keyword.is_active %}
+                                <span class="badge bg-secondary ms-2">Неактивно</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if keyword.current_position == 0 %}
+                                <span class="badge bg-danger">Не найден</span>
+                            {% elif keyword.current_position <= 10 %}
+                                <span class="badge bg-success">{{ keyword.current_position }}</span>
+                            {% elif keyword.current_position <= 50 %}
+                                <span class="badge bg-info">{{ keyword.current_position }}</span>
+                            {% elif keyword.current_position <= 100 %}
+                                <span class="badge bg-warning">{{ keyword.current_position }}</span>
+                            {% elif keyword.current_position %}
+                                <span class="badge bg-secondary">{{ keyword.current_position }}</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if keyword.last_checked %}
+                                {{ keyword.last_checked|date:"d.m.Y" }}
+                            {% else %}
+                                <span class="text-muted">Нет данных</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <a href="{% url 'keyword_history' keyword.id %}" 
+                                   class="btn btn-outline-info">
+                                    <i class="fas fa-chart-line"></i>
+                                </a>
+                                <button type="button" class="btn btn-outline-warning"
+                                        onclick="toggleKeyword({{ keyword.id }})">
+                                    <i class="fas fa-{% if keyword.is_active %}pause{% else %}play{% endif %}"></i>
+                                </button>
+                                <button type="button" class="btn btn-outline-danger"
+                                        data-bs-toggle="modal" data-bs-target="#deleteModal{{ keyword.id }}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                            
+                            <!-- Модальное окно подтверждения удаления -->
+                            <div class="modal fade" id="deleteModal{{ keyword.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content bg-dark">
+                                        <div class="modal-header border-secondary">
+                                            <h5 class="modal-title text-light">Удаление ключевого слова</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <p class="text-light">Удалить ключевое слово <strong>"{{ keyword.keyword }}"</strong>?</p>
+                                            <p class="text-muted small">Будут удалены все данные о позициях по этому ключевому слову.</p>
+                                        </div>
+                                        <div class="modal-footer border-secondary">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                                            <form method="post" action="{% url 'delete_keyword' keyword.id %}" class="d-inline">
+                                                {% csrf_token %}
+                                                <button type="submit" class="btn btn-danger">Удалить</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-key fa-3x mb-3"></i>
+            <h5>Нет ключевых слов</h5>
+            <p>Добавьте ключевые слова для отслеживания позиций товара</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Функция для переключения активности ключевого слова
+function toggleKeyword(keywordId) {
+    fetch(`/keyword/${keywordId}/toggle/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+    });
+}
+
+// Автофокус на поле ввода
+document.addEventListener('DOMContentLoaded', function() {
+    const keywordInput = document.getElementById('{{ form.keyword.id_for_label }}');
+    if (keywordInput) {
+        keywordInput.focus();
+    }
+});
+</script>
+{% endblock %}

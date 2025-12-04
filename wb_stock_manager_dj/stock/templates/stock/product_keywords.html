@@ -1,0 +1,407 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'position_dashboard' %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="mb-1"><i class="fas fa-key me-2 text-info"></i>{{ page_title }}</h1>
+            <div class="d-flex align-items-center">
+                <small class="text-muted me-3">
+                    <i class="fas fa-barcode me-1"></i>Арт: {{ product.article }}
+                </small>
+                <small class="text-muted">
+                    <i class="fas fa-cubes me-1"></i>Остаток: {{ product.current_stock }}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'stock_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-cubes me-1"></i>Остатки
+        </a>
+    </div>
+</div>
+
+<!-- Два столбца -->
+<div class="row">
+    <!-- Левая колонка: Ключевые слова -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-keyboard me-2 text-primary"></i>Ключевые слова
+                    </h5>
+                    <span class="badge bg-dark">{{ keywords.count }}</span>
+                </div>
+                
+                <!-- Форма добавления ключевого слова -->
+                <div class="card bg-dark border-secondary mb-4">
+                    <div class="card-body">
+                        <form method="post" class="row g-2">
+                            {% csrf_token %}
+                            <input type="hidden" name="add_keyword" value="1">
+                            
+                            <div class="col-md-10">
+                                <label class="form-label small text-muted">Новое ключевое слово</label>
+                                {{ keyword_form.keyword }}
+                            </div>
+                            <div class="col-md-2 d-flex align-items-end">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Список ключевых слов -->
+                {% if keywords %}
+                <div class="list-group">
+                    {% for keyword in keywords %}
+                    <div class="list-group-item border-0 bg-transparent mb-2 p-0">
+                        <div class="card bg-dark border-secondary">
+                            <div class="card-body">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <div class="me-3">
+                                        <h6 class="mb-1">
+                                            {% if keyword.is_active %}
+                                                <i class="fas fa-play text-success me-1"></i>
+                                            {% else %}
+                                                <i class="fas fa-pause text-secondary me-1"></i>
+                                            {% endif %}
+                                            {{ keyword.keyword }}
+                                        </h6>
+                                        
+                                        <div class="small text-muted">
+                                            {% if keyword.current_position %}
+                                                Текущая: 
+                                                <span class="
+                                                    {% if keyword.current_position <= 10 %}text-success
+                                                    {% elif keyword.current_position <= 50 %}text-info
+                                                    {% elif keyword.current_position <= 100 %}text-warning
+                                                    {% else %}text-secondary{% endif %}">
+                                                    {{ keyword.current_position }}
+                                                </span>
+                                            {% else %}
+                                                <span class="text-muted">Нет данных</span>
+                                            {% endif %}
+                                            
+                                            {% if keyword.average_position %}
+                                                <span class="ms-2">Средняя: {{ keyword.average_position }}</span>
+                                            {% endif %}
+                                            
+                                            {% if keyword.best_position %}
+                                                <span class="ms-2">Лучшая: {{ keyword.best_position }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="text-end">
+                                        <div class="h4 mb-1 
+                                            {% if keyword.current_position <= 10 %}text-success
+                                            {% elif keyword.current_position <= 50 %}text-info
+                                            {% elif keyword.current_position <= 100 %}text-warning
+                                            {% elif keyword.current_position %}text-secondary
+                                            {% else %}text-danger{% endif %}">
+                                            {{ keyword.current_position|default:"-" }}
+                                        </div>
+                                        <div class="small text-muted">текущая</div>
+                                    </div>
+                                </div>
+                                
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <div class="small">
+                                        <span class="badge bg-secondary me-2">
+                                            {{ keyword.tracking_count }} проверок
+                                        </span>
+                                        
+                                        {% with trend=keyword.position_trend %}
+                                        {% if trend.direction == 'up' %}
+                                            <span class="text-success">
+                                                <i class="fas fa-arrow-up"></i> +{{ trend.value }}
+                                            </span>
+                                        {% elif trend.direction == 'down' %}
+                                            <span class="text-danger">
+                                                <i class="fas fa-arrow-down"></i> -{{ trend.value }}
+                                            </span>
+                                        {% endif %}
+                                        {% endwith %}
+                                    </div>
+                                    
+                                    <div class="btn-group btn-group-sm">
+                                        <a href="{% url 'add_position' keyword.id %}" 
+                                           class="btn btn-outline-primary">
+                                            <i class="fas fa-plus"></i> Позиция
+                                        </a>
+                                        <a href="{% url 'keyword_tracking_history' keyword.id %}" 
+                                           class="btn btn-outline-secondary">
+                                            <i class="fas fa-history"></i>
+                                        </a>
+                                        <a href="{% url 'keyword_toggle_active' keyword.id %}" 
+                                           class="btn btn-outline-{% if keyword.is_active %}warning{% else %}success{% endif %}">
+                                            <i class="fas fa-{% if keyword.is_active %}pause{% else %}play{% endif %}"></i>
+                                        </a>
+                                        <a href="{% url 'keyword_delete' keyword.id %}" 
+                                           class="btn btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-key fa-3x mb-3"></i>
+                    <h5>Нет ключевых слов</h5>
+                    <p>Добавьте ключевые слова для отслеживания позиций товара</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Правая колонка: Графики и статистика -->
+    <div class="col-lg-6 mb-4">
+        <!-- Общий график динамики -->
+        {% if keywords %}
+        <div class="card border-0 mb-4">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-chart-area me-2 text-primary"></i>Динамика позиций
+                </h5>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="combinedChart"></canvas>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Статистика по товару -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body text-center">
+                        <div class="h2 mb-2 text-info">
+                            {{ keywords.count }}
+                        </div>
+                        <div class="small text-muted">Ключевых слов</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body text-center">
+                        {% with active_count=keywords.filter.is_active|length %}
+                        <div class="h2 mb-2 text-success">{{ active_count }}</div>
+                        {% endwith %}
+                        <div class="small text-muted">Активных</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body text-center">
+                        <div class="h2 mb-2 text-warning">
+                            {% if product.current_stock > 0 %}
+                                {{ product.current_stock }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted">Остаток на складе</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body text-center">
+                        <div class="h2 mb-2 text-primary">
+                            {% if product.days_in_stock %}
+                                {{ product.days_in_stock }}
+                            {% else %}
+                                0
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted">Дней на складе</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние проверки -->
+<div class="card border-0 mt-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-history me-2 text-primary"></i>Последние проверки
+        </h5>
+        
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Ключевое слово</th>
+                        <th>Позиция</th>
+                        <th>Дата проверки</th>
+                        <th>Действия</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for keyword in keywords %}
+                        {% for track in keyword.tracking.all|slice:":2" %}
+                        <tr>
+                            <td>{{ keyword.keyword }}</td>
+                            <td>
+                                {% if track.position == 0 %}
+                                    <span class="badge bg-danger">Не найден</span>
+                                {% elif track.position <= 10 %}
+                                    <span class="badge bg-success">{{ track.position }}</span>
+                                {% elif track.position <= 50 %}
+                                    <span class="badge bg-info">{{ track.position }}</span>
+                                {% elif track.position <= 100 %}
+                                    <span class="badge bg-warning">{{ track.position }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ track.position }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ track.checked_at|date:"d.m.Y" }}</td>
+                            <td>
+                                <a href="{% url 'keyword_tracking_history' keyword.id %}" 
+                                   class="btn btn-outline-secondary btn-sm">
+                                    <i class="fas fa-history"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-3 text-muted">
+                            Нет данных о проверках
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if keywords %}
+<script>
+// Комбинированный график по всем ключевикам
+const combinedCtx = document.getElementById('combinedChart').getContext('2d');
+const combinedChart = new Chart(combinedCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: []
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: false,
+                reverse: true,
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd',
+                    callback: function(value) {
+                        return value === 0 ? 'Не найден' : value;
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#f8f9fa',
+                    font: {
+                        size: 12
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Загрузка данных для комбинированного графика
+document.addEventListener('DOMContentLoaded', function() {
+    const colors = [
+        '#ff6b35', '#20c997', '#6f42c1', '#fd7e14', '#e83e8c', 
+        '#28a745', '#17a2b8', '#ffc107', '#6610f2', '#6c757d'
+    ];
+    
+    let loadedCount = 0;
+    const datasets = [];
+    const keywordIds = [
+        {% for keyword in keywords|slice:":5" %}
+        {{ keyword.id }},
+        {% endfor %}
+    ];
+    
+    keywordIds.forEach((keywordId, index) => {
+        fetch(`/api/keyword/${keywordId}/history/`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.positions && data.positions.length > 0) {
+                    datasets.push({
+                        label: data.keyword || `Ключ ${index + 1}`,
+                        data: data.positions,
+                        borderColor: colors[index % colors.length],
+                        backgroundColor: colors[index % colors.length] + '20',
+                        tension: 0.4,
+                        fill: false,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    });
+                    
+                    // Используем даты первого ключевика как общие
+                    if (loadedCount === 0 && data.dates.length > 0) {
+                        combinedChart.data.labels = data.dates.map(date => {
+                            const d = new Date(date);
+                            return `${d.getDate().toString().padStart(2, '0')}.${(d.getMonth() + 1).toString().padStart(2, '0')}`;
+                        });
+                    }
+                }
+                
+                loadedCount++;
+                
+                // Когда все данные загружены, обновляем график
+                if (loadedCount === keywordIds.length) {
+                    combinedChart.data.datasets = datasets;
+                    combinedChart.update();
+                }
+            })
+            .catch(error => {
+                console.error('Error loading chart data:', error);
+                loadedCount++;
+            });
+    });
+});
+</script>
+{% endif %}
+{% endblock %}

@@ -3,7 +3,7 @@ from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User  # Импортируем стандартного User
 from django.utils import timezone
-from .models import UserProfile, Product, StockMovement, CampaignDailyStats, AdvertisingCampaign, GoalNote, CampaignGoal
+from .models import UserProfile, Product, StockMovement, CampaignDailyStats, AdvertisingCampaign, GoalNote, CampaignGoal, ProductKeyword, ProductPosition
 
 
 class CustomUserCreationForm(UserCreationForm):
@@ -235,3 +235,161 @@ class GoalNoteForm(forms.ModelForm):
             'title': 'Заголовок',
             'content': 'Содержание',
         }
+    
+class ProductKeywordForm(forms.ModelForm):
+    """Форма для добавления ключевого слова к товару"""
+    class Meta:
+        model = ProductKeyword
+        fields = ['keyword']
+        widgets = {
+            'keyword': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Введите ключевое слово...'
+            })
+        }
+
+
+class AddPositionForm(forms.Form):
+    """Форма для добавления позиции на главной странице"""
+    keyword = forms.ModelChoiceField(
+        queryset=ProductKeyword.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'keyword-select'
+        }),
+        label="Ключевое слово"
+    )
+    
+    position = forms.IntegerField(
+        min_value=0,
+        max_value=1000,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Позиция (0 = не найден)'
+        }),
+        label="Позиция"
+    )
+    
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label="Дата проверки",
+        initial=timezone.now().date()
+    )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['keyword'].queryset = ProductKeyword.objects.filter(
+                product__user=user,
+                is_active=True
+            ).order_by('keyword')
+
+
+class BulkPositionsForm(forms.Form):
+    """Форма для массового добавления позиций"""
+    date = forms.DateField(
+        widget=forms.DateInput(attrs={
+            'class': 'form-control',
+            'type': 'date'
+        }),
+        label="Дата проверки",
+        initial=timezone.now().date()
+    )
+    
+    data = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 10,
+            'placeholder': 'Артикул:Ключевое слово:Позиция\n123456:чехол для айфона:15\n123456:чехол:47'
+        }),
+        label="Данные",
+        help_text="Каждая строка: Артикул:Ключевое слово:Позиция"
+    )
+class AddKeywordForm(forms.Form):
+    """Форма добавления ключевого слова к товару"""
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'add-keyword-product'
+        }),
+        label="Товар"
+    )
+    
+    keyword = forms.CharField(
+        max_length=255,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Введите ключевое слово...',
+            'autocomplete': 'off'
+        }),
+        label="Ключевое слово"
+    )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['product'].queryset = Product.objects.filter(user=user).order_by('name')
+
+
+class AddPositionForm(forms.Form):
+    """Форма добавления позиции (упрощенная - без даты)"""
+    product = forms.ModelChoiceField(
+        queryset=Product.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'add-position-product',
+            'onchange': 'updateKeywords()'  # Добавляем onchange
+        }),
+        label="Товар"
+    )
+    
+    keyword = forms.ModelChoiceField(
+        queryset=ProductKeyword.objects.none(),
+        widget=forms.Select(attrs={
+            'class': 'form-select',
+            'id': 'add-position-keyword'
+        }),
+        label="Ключевое слово"
+    )
+    
+    position = forms.IntegerField(
+        min_value=0,
+        max_value=1000,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Позиция',
+            'min': '0',
+            'max': '1000'
+        }),
+        label="Позиция",
+        help_text="0 = товар не найден в поиске"
+    )
+    
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop('user', None)
+        # Получаем product_id из initial если есть
+        self.product_id = kwargs.pop('product_id', None)
+        super().__init__(*args, **kwargs)
+        
+        if user:
+            self.fields['product'].queryset = Product.objects.filter(user=user).order_by('name')
+            
+            # Если передан product_id, показываем только его ключевые слова
+            if self.product_id:
+                self.fields['keyword'].queryset = ProductKeyword.objects.filter(
+                    product_id=self.product_id,
+                    product__user=user
+                ).order_by('keyword')
+            else:
+                # Иначе показываем все ключевые слова
+                self.fields['keyword'].queryset = ProductKeyword.objects.filter(
+                    product__user=user
+                ).order_by('keyword')

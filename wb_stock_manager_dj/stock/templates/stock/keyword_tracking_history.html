@@ -1,0 +1,396 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}История позиций - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'product_keywords' keyword.product.id %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="mb-1"><i class="fas fa-history me-2 text-info"></i>{{ page_title }}</h1>
+            <div class="d-flex align-items-center">
+                <small class="text-muted me-3">
+                    <i class="fas fa-cube me-1"></i>{{ keyword.product.name }}
+                </small>
+                <small class="text-muted">
+                    <i class="fas fa-key me-1"></i>{{ keyword.keyword }}
+                </small>
+            </div>
+        </div>
+    </div>
+    <div>
+        <a href="{% url 'position_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-search me-1"></i>Все позиции
+        </a>
+    </div>
+</div>
+
+<!-- Статистика ключевого слова -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 
+                    {% if keyword.current_position <= 10 %}text-success
+                    {% elif keyword.current_position <= 50 %}text-info
+                    {% elif keyword.current_position <= 100 %}text-warning
+                    {% elif keyword.current_position %}text-secondary
+                    {% else %}text-danger{% endif %}">
+                    {{ keyword.current_position|default:"-" }}
+                </div>
+                <small class="text-muted">Текущая позиция</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-success">{{ keyword.best_position|default:"-" }}</div>
+                <small class="text-muted">Лучшая позиция</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-warning">{{ keyword.worst_position|default:"-" }}</div>
+                <small class="text-muted">Худшая позиция</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card border-0">
+            <div class="card-body text-center">
+                <div class="h2 mb-2 text-info">{{ keyword.average_position|default:"-" }}</div>
+                <small class="text-muted">Средняя позиция</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- График истории -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-chart-line me-2 text-primary"></i>Динамика позиций
+            </h5>
+            <span class="badge bg-dark">{{ tracking_history.count }} проверок</span>
+        </div>
+        
+        <div class="chart-container" style="height: 300px;">
+            <canvas id="historyChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Фильтры -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-filter me-2 text-primary"></i>Фильтры по дате
+        </h5>
+        
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Дата с</label>
+                <input type="date" name="date_from" class="form-control" 
+                       value="{{ date_from }}" 
+                       style="background: var(--light-black); border: 1px solid var(--accent-gray); color: var(--text-light);">
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label small text-muted">Дата по</label>
+                <input type="date" name="date_to" class="form-control" 
+                       value="{{ date_to }}"
+                       style="background: var(--light-black); border: 1px solid var(--accent-gray); color: var(--text-light);">
+            </div>
+            
+            <div class="col-md-4 d-flex align-items-end">
+                <div class="btn-group w-100">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Применить
+                    </button>
+                    <a href="{% url 'keyword_tracking_history' keyword.id %}" class="btn btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Сбросить
+                    </a>
+                </div>
+            </div>
+        </form>
+        
+        {% if date_from or date_to %}
+        <div class="mt-2">
+            <small class="text-muted">
+                Фильтр: 
+                {% if date_from %}с {{ date_from }}{% endif %}
+                {% if date_to %}по {{ date_to }}{% endif %}
+                ({{ tracking_history.count }} записей)
+            </small>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Таблица истории -->
+<div class="card border-0">
+    <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title mb-0">
+                <i class="fas fa-table me-2 text-primary"></i>История проверок
+            </h5>
+            
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" 
+                        data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-download me-1"></i>Экспорт
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <a class="dropdown-item" href="#" onclick="exportToCSV()">
+                            <i class="fas fa-file-csv me-2"></i>CSV
+                        </a>
+                    </li>
+                    <li>
+                        <a class="dropdown-item" href="#" onclick="window.print()">
+                            <i class="fas fa-print me-2"></i>Печать
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        
+        {% if tracking_history %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="trackingTable">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Позиция</th>
+                        <th>Категория</th>
+                        <th>Страница</th>
+                        <th>Всего найдено</th>
+                        <th>Дата и время</th>
+                        <th>Примечания</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for track in tracking_history %}
+                    <tr>
+                        <td>{{ forloop.counter }}</td>
+                        <td>
+                            <span class="fw-bold 
+                                {% if track.position == 0 %}text-danger
+                                {% elif track.position <= 10 %}text-success
+                                {% elif track.position <= 50 %}text-info
+                                {% elif track.position <= 100 %}text-warning
+                                {% else %}text-secondary{% endif %}">
+                                {% if track.position == 0 %}
+                                    Не найден
+                                {% else %}
+                                    {{ track.position }}
+                                {% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            {% if track.position == 0 %}
+                                <span class="badge bg-danger">Не найден</span>
+                            {% elif track.position <= 10 %}
+                                <span class="badge bg-success">Топ-10</span>
+                            {% elif track.position <= 50 %}
+                                <span class="badge bg-info">Топ-50</span>
+                            {% elif track.position <= 100 %}
+                                <span class="badge bg-warning">Топ-100</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Топ-200</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ track.page }}</td>
+                        <td>{{ track.total_found|default:"-" }}</td>
+                        <td>{{ track.checked_at|date:"d.m.Y H:i" }}</td>
+                        <td>{{ track.notes|truncatechars:30|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Пагинация -->
+        {% if tracking_history.has_other_pages %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if tracking_history.has_previous %}
+                <li class="page-item">
+                    <a class="page-link bg-dark border-secondary text-light" 
+                       href="?page={{ tracking_history.previous_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for num in tracking_history.paginator.page_range %}
+                    {% if tracking_history.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link bg-primary border-primary">{{ num }}</span>
+                    </li>
+                    {% elif num > tracking_history.number|add:'-3' and num < tracking_history.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link bg-dark border-secondary text-light" 
+                           href="?page={{ num }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                            {{ num }}
+                        </a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if tracking_history.has_next %}
+                <li class="page-item">
+                    <a class="page-link bg-dark border-secondary text-light" 
+                       href="?page={{ tracking_history.next_page_number }}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <div class="text-center py-5 text-muted">
+            <i class="fas fa-history fa-3x mb-3"></i>
+            <h5>История проверок пуста</h5>
+            <p>Добавьте первую проверку позиции для этого ключевого слова</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// График истории позиций
+const historyCtx = document.getElementById('historyChart').getContext('2d');
+const historyChart = new Chart(historyCtx, {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: 'Позиция в поиске',
+            data: [],
+            borderColor: '#ff6b35',
+            backgroundColor: 'rgba(255, 107, 53, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 3,
+            pointBackgroundColor: '#ff6b35',
+            pointBorderColor: '#ffffff',
+            pointBorderWidth: 2,
+            pointRadius: 4
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+            y: {
+                beginAtZero: false,
+                reverse: true,
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd',
+                    callback: function(value) {
+                        return value === 0 ? 'Не найден' : value;
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd',
+                    maxRotation: 45
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#f8f9fa',
+                    font: {
+                        size: 14,
+                        weight: 'bold'
+                    }
+                }
+            },
+            tooltip: {
+                callbacks: {
+                    label: function(context) {
+                        let label = context.dataset.label || '';
+                        if (label) {
+                            label += ': ';
+                        }
+                        label += context.parsed.y === 0 ? 'Не найден' : context.parsed.y;
+                        return label;
+                    }
+                }
+            }
+        }
+    }
+});
+
+// Загрузка данных для графика
+document.addEventListener('DOMContentLoaded', function() {
+    const labels = [];
+    const positions = [];
+    
+    {% for track in tracking_history|slice:":50" %}
+    labels.push('{{ track.checked_at|date:"d.m.Y H:i" }}');
+    positions.push({{ track.position }});
+    {% endfor %}
+    
+    // Реверсируем массивы чтобы показывать от старых к новым
+    labels.reverse();
+    positions.reverse();
+    
+    historyChart.data.labels = labels;
+    historyChart.data.datasets[0].data = positions;
+    historyChart.update();
+});
+
+// Экспорт в CSV
+function exportToCSV() {
+    let csv = 'Дата;Позиция;Страница;Всего найдено;Примечания\n';
+    
+    const rows = document.querySelectorAll('#trackingTable tbody tr');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        if (cells.length >= 7) {
+            const date = cells[5].textContent.trim();
+            const position = cells[1].textContent.trim();
+            const page = cells[3].textContent.trim();
+            const total = cells[4].textContent.trim();
+            const notes = cells[6].textContent.trim();
+            
+            csv += `"${date}";"${position}";"${page}";"${total}";"${notes}"\n`;
+        }
+    });
+    
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', `positions_${'{{ keyword.keyword|slugify }}'}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+</script>
+{% endblock %}

@@ -37,4 +37,11 @@ urlpatterns = [
     path('advertising/goals/<int:goal_id>/archive/', views.goal_archive, name='goal_archive'),
     path('advertising/goals/<int:goal_id>/reactivate/', views.goal_reactivate, name='goal_reactivate'),
     path('advertising/goals/<int:goal_id>/delete/', views.goal_delete, name='goal_delete'),
+    path('positions/', views.position_tracking, name='position_tracking'),
+    path('keyword/<int:keyword_id>/delete/', views.delete_keyword, name='delete_keyword'),
+    path('keyword/<int:keyword_id>/history/', views.keyword_history, name='keyword_history'),
+    
+    # API
+    path('api/keyword/<int:keyword_id>/history/', views.api_keyword_history, name='api_keyword_history'),
+    path('api/keywords-by-product/<int:product_id>/', views.api_keywords_by_product, name='api_keywords_by_product'),
 ]

@@ -9,10 +9,12 @@ from django.shortcuts import render
 from django.core.exceptions import PermissionDenied
 from django.http import Http404
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.core.paginator import Paginator
+from django.utils import timezone
+from .models import Product, UserProfile, StockMovement, AdvertisingCampaign, CampaignDailyStats, CampaignGoal, GoalNote, ProductKeyword, ProductPosition
 
-from .models import Product, UserProfile, StockMovement, AdvertisingCampaign, CampaignDailyStats, CampaignGoal, GoalNote
-
-from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm, CampaignDailyStatsForm, AdvertisingCampaignForm, CampaignGoalForm, GoalNoteForm, CampaignDailyStatsForm
+from .forms import CustomUserCreationForm, UserProfileForm, APITokenForm, StockMovementForm, ProductForm, CampaignDailyStatsForm, AdvertisingCampaignForm, CampaignGoalForm, GoalNoteForm, BulkPositionsForm, ProductKeywordForm, AddPositionForm, AddKeywordForm
 from .wb_parser import get_wb_simple_service, clear_wb_cache
 
 
@@ -839,4 +841,231 @@ def goal_delete(request, goal_id):
     
     return render(request, 'stock/goal_confirm_delete.html', {
         'goal': goal
+    })
+
+@login_required
+def position_tracking(request):
+    """Главная страница отслеживания позиций"""
+    # Форма добавления ключевого слова
+    keyword_form = AddKeywordForm(user=request.user)
+    
+    # Получаем выбранный товар из GET параметра или POST
+    selected_product_id = None
+    
+    if request.method == 'GET':
+        selected_product_id = request.GET.get('product_id')
+    elif request.method == 'POST' and 'add_position' in request.POST:
+        # Сохраняем выбранный товар из POST
+        selected_product_id = request.POST.get('product')
+    
+    # Форма добавления позиции - передаем выбранный товар
+    position_form = AddPositionForm(
+        user=request.user, 
+        product_id=selected_product_id
+    )
+    
+    if request.method == 'POST':
+        # Проверяем какую форму отправили
+        if 'add_keyword' in request.POST:
+            keyword_form = AddKeywordForm(request.POST, user=request.user)
+            if keyword_form.is_valid():
+                # ... существующий код ...
+                pass
+        
+        elif 'add_position' in request.POST:
+            position_form = AddPositionForm(request.POST, user=request.user)
+            if position_form.is_valid():
+                # ... существующий код ...
+                pass
+    
+    # Получаем все товары с ключевыми словами
+    products_with_keywords = Product.objects.filter(
+        user=request.user,
+        keywords__isnull=False
+    ).distinct().order_by('name')
+    
+    # Для каждого товара получаем его ключевые слова и текущие позиции
+    product_stats = []
+    for product in products_with_keywords:
+        keywords = product.keywords.all()
+        keyword_data = []
+        
+        for kw in keywords:
+            current_position = kw.current_position
+            last_position = kw.positions.first()  # Последняя запись
+            keyword_data.append({
+                'keyword': kw,
+                'current_position': current_position,
+                'last_checked': last_position.created_at if last_position else None
+            })
+        
+        product_stats.append({
+            'product': product,
+            'keywords': keyword_data,
+            'keyword_count': keywords.count()
+        })
+    
+    # Рассчитываем топ товаров по средней позиции
+    top_products = []
+    for product in products_with_keywords:
+        all_positions = []
+        best_position = None
+        worst_position = None
+        
+        for kw in product.keywords.all():
+            positions = kw.positions.all()
+            if positions:
+                kw_positions = [p.position for p in positions if p.position > 0]
+                if kw_positions:
+                    all_positions.extend(kw_positions)
+                    
+                    kw_best = min(kw_positions)
+                    kw_worst = max(kw_positions)
+                    
+                    if best_position is None or kw_best < best_position:
+                        best_position = kw_best
+                    if worst_position is None or kw_worst > worst_position:
+                        worst_position = kw_worst
+        
+        if all_positions:
+            avg_position = sum(all_positions) / len(all_positions)
+            # Получаем последние 5 позиций для отображения
+            recent_positions = ProductPosition.objects.filter(
+                keyword__product=product
+            ).order_by('-created_at')[:5]
+            
+            top_products.append({
+                'id': product.id,
+                'name': product.name,
+                'article': product.article,
+                'image': product.image,
+                'avg_position': avg_position,
+                'best_position': best_position or 0,
+                'worst_position': worst_position or 0,
+                'keywords_count': product.keywords.count(),
+                'recent_positions': recent_positions,
+                'current_stock': product.current_stock
+            })
+    
+    # Сортируем по средней позиции (чем меньше - тем лучше)
+    top_products.sort(key=lambda x: x['avg_position'])
+    
+    context = {
+        'page_title': 'Отслеживание позиций',
+        'keyword_form': keyword_form,
+        'position_form': position_form,
+        'product_stats': product_stats,
+        'top_products': top_products[:6],  # Топ 6 товаров
+        'selected_product_id': selected_product_id,
+    }
+    return render(request, 'stock/position_tracking.html', context)
+
+
+@login_required
+def delete_keyword(request, keyword_id):
+    """Удаление ключевого слова"""
+    keyword = get_object_or_404(ProductKeyword, id=keyword_id, product__user=request.user)
+    
+    if request.method == 'POST':
+        keyword.delete()
+        messages.success(request, 'Ключевое слово удалено')
+        return redirect('position_tracking')
+    
+    return render(request, 'stock/delete_keyword.html', {'keyword': keyword})
+
+
+@login_required
+def keyword_history(request, keyword_id):
+    """История позиций по ключевому слову"""
+    keyword = get_object_or_404(ProductKeyword, id=keyword_id, product__user=request.user)
+    positions = keyword.positions.all().order_by('-date')
+    
+    context = {
+        'page_title': f'История - {keyword.keyword}',
+        'keyword': keyword,
+        'positions': positions,
+    }
+    return render(request, 'stock/keyword_history.html', context)
+
+
+
+@login_required
+def api_all_products_keywords(request):
+    """API для получения всех товаров с их ключевыми словами"""
+    products = Product.objects.filter(user=request.user).order_by('name')
+    
+    products_data = {}
+    for product in products:
+        keywords = product.keywords.all().order_by('keyword')
+        
+        keywords_data = []
+        for kw in keywords:
+            last_position = kw.positions.first()  # Последняя позиция
+            keywords_data.append({
+                'id': kw.id,
+                'text': kw.keyword,
+                'current_position': kw.current_position,
+                'last_checked': last_position.created_at.strftime('%d.%m') if last_position else None
+            })
+        
+        products_data[str(product.id)] = {  # Ключ как строка!
+            'id': product.id,
+            'name': product.name,
+            'article': product.article,
+            'keywords': keywords_data
+        }
+    
+    return JsonResponse({
+        'success': True,
+        'products': products_data
+    })
+
+@login_required
+def api_keyword_history(request, keyword_id):
+    """API для получения истории позиций ключевого слова"""
+    keyword = get_object_or_404(ProductKeyword, id=keyword_id, product__user=request.user)
+    
+    # Получаем последние 30 позиций
+    positions_data = keyword.positions.all().order_by('created_at')[:30]
+    
+    # Подготавливаем данные для графика
+    dates = []
+    positions = []
+    
+    for pos in positions_data:
+        dates.append(pos.created_at.strftime('%Y-%m-%d'))
+        positions.append(pos.position)
+    
+    return JsonResponse({
+        'success': True,
+        'keyword': keyword.keyword,
+        'product_name': keyword.product.name,
+        'dates': dates,
+        'positions': positions,
+        'current_position': keyword.current_position,
+        'total_positions': positions_data.count()
+    })
+
+@login_required
+def api_keywords_by_product(request, product_id):
+    """API для получения ключевых слов по товару"""
+    product = get_object_or_404(Product, id=product_id, user=request.user)
+    
+    keywords = product.keywords.all().order_by('keyword')
+    
+    keywords_data = []
+    for kw in keywords:
+        last_position = kw.positions.first()
+        keywords_data.append({
+            'id': kw.id,
+            'text': kw.keyword,
+            'current_position': kw.current_position,
+            'last_checked': last_position.created_at.strftime('%d.%m') if last_position else None
+        })
+    
+    return JsonResponse({
+        'success': True,
+        'product_id': product_id,
+        'product_name': product.name,
+        'keywords': keywords_data
     })

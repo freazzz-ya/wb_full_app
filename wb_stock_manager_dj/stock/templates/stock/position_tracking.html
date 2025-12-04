@@ -1,0 +1,731 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Отслеживание позиций - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-search me-2 text-info"></i>Отслеживание позиций</h1>
+    <a href="{% url 'stock_dashboard' %}" class="btn btn-outline-primary">
+        <i class="fas fa-cubes me-1"></i>К остаткам
+    </a>
+</div>
+
+<div class="row">
+    <!-- Левая колонка с формами -->
+    <div class="col-lg-4 mb-4">
+        <!-- Форма добавления ключевого слова -->
+        <div class="card border-0 mb-4">
+            <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-key me-2 text-success"></i>Добавить ключевое слово
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#addKeywordCollapse">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="addKeywordCollapse">
+                <div class="card-body">
+                    <form method="post" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="add_keyword" value="1">
+                        
+                        <div class="col-12">
+                            <label class="form-label text-light">Выберите товар</label>
+                            {{ keyword_form.product }}
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label text-light">Введите ключевое слово</label>
+                            {{ keyword_form.keyword }}
+                            <div class="form-text text-muted">Например: "чехол для айфона 14"</div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-plus me-1"></i>Добавить ключевое слово
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Форма добавления позиции -->
+        <div class="card border-0">
+            <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chart-line me-2 text-primary"></i>Добавить позицию
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#addPositionCollapse">
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+            </div>
+            <div class="collapse" id="addPositionCollapse">
+                <div class="card-body">
+                    <form method="post" id="position-form" class="row g-3">
+                        {% csrf_token %}
+                        <input type="hidden" name="add_position" value="1">
+                        
+                        <div class="col-12">
+                            <label class="form-label text-light">Товар</label>
+                            {{ position_form.product }}
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label text-light">Ключевое слово</label>
+                            {{ position_form.keyword }}
+                        </div>
+                        
+                        <div class="col-12">
+                            <label class="form-label text-light">Позиция</label>
+                            {{ position_form.position }}
+                            <div class="form-text text-muted">0 = не найден</div>
+                        </div>
+                        
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-save me-1"></i>Сохранить позицию
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информационный блок -->
+        <div class="card border-0 mt-4">
+            <div class="card-body bg-dark border border-info">
+                <h6><i class="fas fa-info-circle me-2 text-info"></i>Как это работает</h6>
+                <ol class="small ps-3 mb-0">
+                    <li class="mb-2">Добавьте ключевые слова к товарам</li>
+                    <li class="mb-2">Регулярно обновляйте позиции</li>
+                    <li>Отслеживайте динамику на графиках</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <!-- Правая колонка с данными -->
+    <div class="col-lg-8">
+        <!-- Список товаров с ключевыми словами -->
+        <div class="card border-0 mb-4">
+            <div class="card-header bg-dark border-secondary">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-cubes me-2 text-primary"></i>Товары с ключевыми словами
+                        <span class="badge bg-secondary ms-2">{{ product_stats|length }}</span>
+                    </h5>
+                    {% if product_stats %}
+                    <button class="btn btn-sm btn-outline-secondary toggle-all-products">
+                        <i class="fas fa-expand-alt me-1"></i>Развернуть все
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="card-body p-0">
+                {% if product_stats %}
+                <div class="list-group list-group-flush">
+                    {% for stat in product_stats %}
+                    <div class="list-group-item bg-dark border-secondary p-0">
+                        <!-- Заголовок товара -->
+                        <button class="btn btn-dark w-100 text-start d-flex align-items-center py-3 product-header" 
+                                type="button" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#productCollapse{{ stat.product.id }}"
+                                aria-expanded="false"
+                                data-product-id="{{ stat.product.id }}">
+                            <div class="d-flex align-items-center me-3">
+                                {% if stat.product.image %}
+                                    <img src="{{ stat.product.image.url }}" alt="{{ stat.product.name }}" 
+                                         class="rounded me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                                {% else %}
+                                    <div class="bg-secondary rounded d-flex align-items-center justify-content-center me-3" 
+                                         style="width: 40px; height: 40px;">
+                                        <i class="fas fa-cube text-light"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            <div class="flex-grow-1">
+                                <h6 class="mb-1">{{ stat.product.name|truncatechars:25 }}</h6>
+                                <small class="text-muted">Арт: {{ stat.product.article }}</small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted me-3">
+                                    <i class="fas fa-key me-1"></i>{{ stat.keyword_count }} ключ. слов
+                                </small>
+                                {% if stat.product.current_stock > 0 %}
+                                    <span class="badge bg-success me-2">{{ stat.product.current_stock }} шт.</span>
+                                {% else %}
+                                    <span class="badge bg-danger me-2">Нет</span>
+                                {% endif %}
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </button>
+                        
+                        <!-- Ключевые слова товара -->
+                        <div class="collapse" id="productCollapse{{ stat.product.id }}">
+                            <div class="p-3 border-top border-secondary">
+                                {% for kw_data in stat.keywords %}
+                                <div class="mb-3">
+                                    <!-- Заголовок ключевого слова -->
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <div>
+                                            <span class="badge bg-dark text-light me-2">
+                                                {{ kw_data.keyword.keyword|truncatechars:25 }}
+                                            </span>
+                                            {% if kw_data.current_position is not None %}
+                                                <span class="badge 
+                                                    {% if kw_data.current_position == 0 %}bg-danger
+                                                    {% elif kw_data.current_position <= 10 %}bg-success
+                                                    {% elif kw_data.current_position <= 50 %}bg-info
+                                                    {% elif kw_data.current_position <= 100 %}bg-warning
+                                                    {% else %}bg-secondary{% endif %}">
+                                                    Позиция: {{ kw_data.current_position }}
+                                                </span>
+                                                {% if kw_data.last_checked %}
+                                                    <small class="text-muted ms-2">
+                                                        <i class="far fa-clock me-1"></i>{{ kw_data.last_checked|date:"d.m.Y" }}
+                                                    </small>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary">Нет данных</span>
+                                            {% endif %}
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-info toggle-graph-btn"
+                                                data-keyword-id="{{ kw_data.keyword.id }}">
+                                            <i class="fas fa-chart-line me-1"></i>График
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- График позиций -->
+                                    <div class="keyword-graph collapse" id="graph{{ kw_data.keyword.id }}">
+                                        <div class="card bg-dark border-secondary mt-2">
+                                            <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">История позиций</small>
+                                                <button class="btn btn-sm btn-outline-secondary close-graph-btn" 
+                                                        data-keyword-id="{{ kw_data.keyword.id }}">
+                                                    <i class="fas fa-times"></i>
+                                                </button>
+                                            </div>
+                                            <div class="card-body">
+                                                <div class="chart-container-small">
+                                                    <canvas id="chart-keyword-{{ kw_data.keyword.id }}"></canvas>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% if not forloop.last %}
+                                <hr class="border-secondary">
+                                {% endif %}
+                                {% endfor %}
+                                
+                                <!-- Кнопка выбора товара -->
+                                <div class="text-center mt-3">
+                                    <a href="?product_id={{ stat.product.id }}" class="btn btn-sm btn-outline-primary me-2">
+                                        <i class="fas fa-crosshairs me-1"></i>Выбрать
+                                    </a>
+                                    <button class="btn btn-sm btn-outline-secondary toggle-all-keywords" 
+                                            data-product-id="{{ stat.product.id }}">
+                                        <i class="fas fa-expand-alt me-1"></i>Развернуть все графики
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-cube fa-3x mb-3"></i>
+                    <h5>Нет товаров с ключевыми словами</h5>
+                    <p class="mb-4">Используйте форму слева чтобы добавить ключевые слова к товарам</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Топ товаров по средним позициям -->
+        <div class="card border-0">
+            <div class="card-header bg-dark border-secondary d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-trophy me-2 text-warning"></i>Топ-5 товаров по позициям
+                </h5>
+                <small class="text-muted">Чем меньше позиция - тем лучше</small>
+            </div>
+            <div class="card-body">
+                {% if top_products %}
+                <div class="row">
+                    {% for product in top_products %}
+                    <div class="col-md-6 col-lg-4 mb-3">
+                        <div class="card bg-dark border-secondary h-100 hover-shadow">
+                            <div class="card-body">
+                                <!-- Место в топе -->
+                                <div class="position-absolute top-0 start-0 m-2">
+                                    {% if forloop.first %}
+                                        <span class="badge bg-warning text-dark">
+                                            <i class="fas fa-crown me-1"></i>1
+                                        </span>
+                                    {% elif forloop.counter == 2 %}
+                                        <span class="badge bg-secondary">2</span>
+                                    {% elif forloop.counter == 3 %}
+                                        <span class="badge bg-brown">3</span>
+                                    {% else %}
+                                        <span class="badge bg-dark">{{ forloop.counter }}</span>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="d-flex align-items-center mb-3">
+                                    {% if product.image %}
+                                        <img src="{{ product.image.url }}" alt="{{ product.name }}" 
+                                             class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                                    {% else %}
+                                        <div class="bg-secondary rounded d-flex align-items-center justify-content-center me-3" 
+                                             style="width: 50px; height: 50px;">
+                                            <i class="fas fa-cube text-light"></i>
+                                        </div>
+                                    {% endif %}
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-1">{{ product.name|truncatechars:20 }}</h6>
+                                        <small class="text-muted">Арт: {{ product.article }}</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Средняя позиция -->
+                                <div class="text-center mb-3">
+                                    <div class="average-position 
+                                        {% if product.avg_position <= 10 %}text-success
+                                        {% elif product.avg_position <= 50 %}text-info
+                                        {% elif product.avg_position <= 100 %}text-warning
+                                        {% else %}text-secondary{% endif %}">
+                                        <div class="display-6 fw-bold">{{ product.avg_position|floatformat:1 }}</div>
+                                        <small class="text-muted">средняя позиция</small>
+                                    </div>
+                                </div>
+                                
+                                <!-- Диаграмма лучшая/худшая -->
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">Лучшая</small>
+                                        <span class="fw-bold text-success">{{ product.best_position }}</span>
+                                    </div>
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">Ключевых слов</small>
+                                        <span class="fw-bold">{{ product.keywords_count }}</span>
+                                    </div>
+                                    <div class="text-center">
+                                        <small class="text-muted d-block">Худшая</small>
+                                        <span class="fw-bold text-danger">{{ product.worst_position }}</span>
+                                    </div>
+                                </div>
+                                
+                                <!-- Прогресс-бар -->
+                                <div class="progress mb-3" style="height: 6px;">
+                                    {% with percent=product.best_position|default:100 %}
+                                    <div class="progress-bar bg-success" style="width: {% if percent <= 10 %}100{% elif percent <= 50 %}70{% elif percent <= 100 %}40{% else %}20{% endif %}%"></div>
+                                    {% endwith %}
+                                </div>
+                                
+                                <!-- Остатки -->
+                                <div class="d-flex justify-content-between small">
+                                    <span class="text-muted">
+                                        <i class="fas fa-box me-1"></i>
+                                        {% if product.current_stock > 0 %}
+                                            <span class="text-success">{{ product.current_stock }} шт.</span>
+                                        {% else %}
+                                            <span class="text-danger">Нет в наличии</span>
+                                        {% endif %}
+                                    </span>
+                                    <a href="?product_id={{ product.id }}" class="text-info">
+                                        <i class="fas fa-eye me-1"></i>Просмотр
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                {% if top_products|length > 5 %}
+                <div class="text-center mt-4">
+                    <button class="btn btn-outline-secondary btn-sm" id="showAllTop">
+                        <i class="fas fa-chevron-down me-1"></i>Показать все {{ top_products|length }} товаров
+                    </button>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-trophy fa-3x mb-3"></i>
+                    <h5>Нет данных для топа</h5>
+                    <p class="mb-0">Добавьте позиции товаров для формирования рейтинга</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработчик для разворачивания/сворачивания всех товаров
+    const toggleAllBtn = document.querySelector('.toggle-all-products');
+    if (toggleAllBtn) {
+        let allExpanded = false;
+        
+        toggleAllBtn.addEventListener('click', function() {
+            const productHeaders = document.querySelectorAll('.product-header');
+            const icon = this.querySelector('i');
+            
+            productHeaders.forEach(header => {
+                const targetId = header.getAttribute('data-bs-target').replace('#', '');
+                const target = document.getElementById(targetId);
+                const bsCollapse = new bootstrap.Collapse(target, {
+                    toggle: false
+                });
+                
+                if (allExpanded) {
+                    bsCollapse.hide();
+                    header.querySelector('.fa-chevron-down').className = 'fas fa-chevron-down';
+                } else {
+                    bsCollapse.show();
+                    header.querySelector('.fa-chevron-down').className = 'fas fa-chevron-up';
+                }
+            });
+            
+            allExpanded = !allExpanded;
+            icon.className = allExpanded ? 'fas fa-compress-alt me-1' : 'fas fa-expand-alt me-1';
+            this.innerHTML = allExpanded ? 
+                '<i class="fas fa-compress-alt me-1"></i>Свернуть все' : 
+                '<i class="fas fa-expand-alt me-1"></i>Развернуть все';
+        });
+    }
+    
+    // Обработчик для разворачивания всех графиков в товаре
+    document.querySelectorAll('.toggle-all-keywords').forEach(button => {
+        button.addEventListener('click', function() {
+            const productId = this.getAttribute('data-product-id');
+            const graphBtns = document.querySelectorAll(`#productCollapse${productId} .toggle-graph-btn`);
+            
+            graphBtns.forEach(btn => {
+                const keywordId = btn.getAttribute('data-keyword-id');
+                const graphDiv = document.getElementById(`graph${keywordId}`);
+                
+                if (!graphDiv.classList.contains('show')) {
+                    // Открываем график
+                    graphDiv.classList.add('show');
+                    btn.querySelector('i').className = 'fas fa-chart-bar me-1';
+                    btn.classList.remove('btn-outline-info');
+                    btn.classList.add('btn-info');
+                    
+                    // Загружаем график если еще не загружен
+                    loadKeywordChart(keywordId);
+                }
+            });
+        });
+    });
+    
+    // Обработчик кнопок закрытия графиков
+    document.querySelectorAll('.close-graph-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const keywordId = this.getAttribute('data-keyword-id');
+            const graphDiv = document.getElementById(`graph${keywordId}`);
+            const graphBtn = document.querySelector(`.toggle-graph-btn[data-keyword-id="${keywordId}"]`);
+            
+            if (graphDiv) {
+                graphDiv.classList.remove('show');
+            }
+            if (graphBtn) {
+                graphBtn.querySelector('i').className = 'fas fa-chart-line me-1';
+                graphBtn.classList.remove('btn-info');
+                graphBtn.classList.add('btn-outline-info');
+            }
+        });
+    });
+    
+    // Обработчик кнопок графиков
+    document.querySelectorAll('.toggle-graph-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const keywordId = this.getAttribute('data-keyword-id');
+            const graphDiv = document.getElementById(`graph${keywordId}`);
+            const icon = this.querySelector('i');
+            
+            if (graphDiv.classList.contains('show')) {
+                graphDiv.classList.remove('show');
+                icon.className = 'fas fa-chart-line me-1';
+                this.classList.remove('btn-info');
+                this.classList.add('btn-outline-info');
+            } else {
+                graphDiv.classList.add('show');
+                icon.className = 'fas fa-chart-bar me-1';
+                this.classList.remove('btn-outline-info');
+                this.classList.add('btn-info');
+                
+                // Загружаем график если еще не загружен
+                loadKeywordChart(keywordId);
+            }
+        });
+    });
+    
+    // Показать все товары в топе
+    const showAllBtn = document.getElementById('showAllTop');
+    if (showAllBtn) {
+        showAllBtn.addEventListener('click', function() {
+            const topCards = document.querySelectorAll('.col-md-6.col-lg-4');
+            topCards.forEach(card => {
+                card.classList.remove('col-md-6', 'col-lg-4');
+                card.classList.add('col-md-4', 'col-lg-3');
+            });
+            this.style.display = 'none';
+        });
+    }
+    
+    // Авто-отправка формы по Enter
+    const positionInput = document.querySelector('[name="position"]');
+    if (positionInput) {
+        positionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                document.getElementById('position-form').submit();
+            }
+        });
+    }
+    
+    // Обновление списка ключевых слов при выборе товара
+    const productSelect = document.getElementById('add-position-product');
+    const keywordSelect = document.getElementById('add-position-keyword');
+    
+    if (productSelect) {
+        productSelect.addEventListener('change', function() {
+            const productId = this.value;
+            if (productId) {
+                // Загружаем ключевые слова для выбранного товара
+                fetch(`/api/keywords-by-product/${productId}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            keywordSelect.innerHTML = '';
+                            data.keywords.forEach(keyword => {
+                                const option = document.createElement('option');
+                                option.value = keyword.id;
+                                option.textContent = keyword.text;
+                                if (keyword.current_position) {
+                                    option.textContent += ` (текущая: ${keyword.current_position})`;
+                                }
+                                keywordSelect.appendChild(option);
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error loading keywords:', error);
+                    });
+            }
+        });
+    }
+    
+    // Если есть выбранный товар в GET параметре, выбираем его
+    const urlParams = new URLSearchParams(window.location.search);
+    const selectedProductId = urlParams.get('product_id');
+    if (selectedProductId && productSelect) {
+        productSelect.value = selectedProductId;
+        // Триггерим событие change для загрузки ключевых слов
+        productSelect.dispatchEvent(new Event('change'));
+        
+        // Автоматически раскрываем выбранный товар
+        setTimeout(() => {
+            const productHeader = document.querySelector(`.product-header[data-bs-target="#productCollapse${selectedProductId}"]`);
+            if (productHeader) {
+                const target = document.getElementById(`productCollapse${selectedProductId}`);
+                const bsCollapse = new bootstrap.Collapse(target, {
+                    toggle: true
+                });
+                bsCollapse.show();
+                productHeader.querySelector('.fa-chevron-down').className = 'fas fa-chevron-up';
+            }
+        }, 500);
+    }
+});
+
+// Объект для хранения созданных графиков
+const keywordCharts = {};
+
+function loadKeywordChart(keywordId) {
+    const canvas = document.getElementById(`chart-keyword-${keywordId}`);
+    if (!canvas || keywordCharts[keywordId]) return;
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Создаем временный график
+    keywordCharts[keywordId] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ['Загрузка...'],
+            datasets: [{
+                label: 'Позиция',
+                data: [0],
+                borderColor: '#ff6b35',
+                backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                tension: 0.4,
+                fill: true,
+                borderWidth: 2,
+                pointBackgroundColor: '#ff6b35',
+                pointBorderColor: '#ffffff',
+                pointBorderWidth: 1,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    reverse: true,
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#adb5bd',
+                        callback: function(value) {
+                            return value === 0 ? 'Не найден' : value;
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#adb5bd'
+                    }
+                }
+            },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#f8f9fa'
+                    }
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return `Позиция: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // Загружаем реальные данные
+    fetch(`/api/keyword/${keywordId}/history/`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                keywordCharts[keywordId].data.labels = data.dates;
+                keywordCharts[keywordId].data.datasets[0].data = data.positions;
+                keywordCharts[keywordId].data.datasets[0].label = data.keyword;
+                keywordCharts[keywordId].update();
+            }
+        })
+        .catch(error => {
+            console.error('Error loading chart data:', error);
+            keywordCharts[keywordId].data.datasets[0].label = '❌ Ошибка загрузки';
+            keywordCharts[keywordId].update();
+        });
+}
+</script>
+
+<style>
+/* Стили для контейнеров графиков */
+.chart-container-small {
+    height: 200px;
+    width: 100%;
+}
+
+/* Стили для бейджей средних позиций */
+.average-position {
+    text-align: center;
+    min-width: 60px;
+}
+
+/* Анимация появления */
+.collapse {
+    transition: all 0.3s ease;
+}
+
+/* Стили для кнопок переключения */
+.toggle-graph-btn {
+    transition: all 0.3s ease;
+    font-size: 0.8rem;
+}
+
+/* Стили для списка товаров */
+.list-group-item {
+    transition: background-color 0.3s ease;
+}
+
+.list-group-item:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Стили для прогресс-бара */
+.progress {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Цвет для 3-го места */
+.bg-brown {
+    background-color: #8B4513 !important;
+}
+
+/* Эффект при наведении на карточки */
+.hover-shadow:hover {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.3) !important;
+    transform: translateY(-2px);
+    transition: all 0.3s ease;
+}
+
+/* Индикаторы развернутости */
+.product-header .fa-chevron-down,
+.product-header .fa-chevron-up {
+    transition: transform 0.3s ease;
+}
+
+/* Стили для заголовков форм */
+.card-header {
+    cursor: pointer;
+}
+
+.card-header:hover {
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Адаптивные стили */
+@media (max-width: 768px) {
+    .average-position .display-6 {
+        font-size: 1.5rem;
+    }
+    
+    .col-md-6.col-lg-4 {
+        margin-bottom: 1rem;
+    }
+    
+    .toggle-graph-btn {
+        font-size: 0.7rem;
+        padding: 0.2rem 0.5rem;
+    }
+}
+
+/* Анимация загрузки */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+</style>
+{% endblock %}

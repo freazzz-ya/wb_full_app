@@ -1,0 +1,153 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'position_tracking' %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <div>
+            <h1 class="mb-1"><i class="fas fa-chart-line me-2 text-info"></i>{{ page_title }}</h1>
+            <small class="text-muted">
+                Товар: {{ keyword.product.name }} ({{ keyword.product.article }})
+            </small>
+        </div>
+    </div>
+</div>
+
+<!-- График -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-chart-area me-2 text-primary"></i>Динамика позиции
+        </h5>
+        <div class="chart-container" style="height: 300px;">
+            <canvas id="positionChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- История позиций -->
+<div class="card border-0">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-history me-2 text-warning"></i>История позиций
+        </h5>
+        
+        {% if positions %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Позиция</th>
+                        <th>Статус</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pos in positions %}
+                    <tr>
+                        <td>{{ pos.date|date:"d.m.Y" }}</td>
+                        <td>
+                            {% if pos.position == 0 %}
+                                <span class="text-danger fw-bold">Не найден</span>
+                            {% else %}
+                                <span class="fw-bold">{{ pos.position }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if pos.position == 0 %}
+                                <span class="badge bg-danger">Не найден</span>
+                            {% elif pos.position <= 10 %}
+                                <span class="badge bg-success">Топ-10</span>
+                            {% elif pos.position <= 50 %}
+                                <span class="badge bg-info">Топ-50</span>
+                            {% elif pos.position <= 100 %}
+                                <span class="badge bg-warning">Топ-100</span>
+                            {% else %}
+                                <span class="badge bg-secondary">Позиция {{ pos.position }}</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted">
+            <i class="fas fa-chart-line fa-3x mb-3"></i>
+            <p>Нет данных о позициях</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// График позиций
+const ctx = document.getElementById('positionChart').getContext('2d');
+
+// Данные для графика (в обратном порядке - от старых к новым)
+const positions = [
+    {% for pos in positions reversed %}
+    {{ pos.position }},
+    {% endfor %}
+];
+
+const dates = [
+    {% for pos in positions reversed %}
+    '{{ pos.date|date:"d.m.Y" }}',
+    {% endfor %}
+];
+
+const chart = new Chart(ctx, {
+    type: 'line',
+    data: {
+        labels: dates,
+        datasets: [{
+            label: 'Позиция',
+            data: positions,
+            borderColor: '#ff6b35',
+            backgroundColor: 'rgba(255, 107, 53, 0.1)',
+            tension: 0.4,
+            fill: true,
+            borderWidth: 3
+        }]
+    },
+    options: {
+        responsive: true,
+        scales: {
+            y: {
+                beginAtZero: false,
+                reverse: true,  // Лучшие позиции (1) вверху
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd',
+                    callback: function(value) {
+                        return value === 0 ? 'Не найден' : value;
+                    }
+                }
+            },
+            x: {
+                grid: {
+                    color: 'rgba(255, 255, 255, 0.1)'
+                },
+                ticks: {
+                    color: '#adb5bd'
+                }
+            }
+        },
+        plugins: {
+            legend: {
+                labels: {
+                    color: '#f8f9fa'
+                }
+            }
+        }
+    }
+});
+</script>
+{% endblock %}

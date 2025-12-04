@@ -1,0 +1,335 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Отслеживание позиций - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1><i class="fas fa-search me-2 text-info"></i>Отслеживание позиций</h1>
+    <div>
+        <a href="{% url 'bulk_position_add' %}" class="btn btn-primary me-2">
+            <i class="fas fa-file-import me-2"></i>Массовое добавление
+        </a>
+        <a href="{% url 'position_analytics' %}" class="btn btn-outline-primary">
+            <i class="fas fa-chart-bar me-2"></i>Аналитика
+        </a>
+    </div>
+</div>
+
+<!-- Быстрое добавление позиции -->
+<div class="card border-0 mb-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-bolt me-2 text-warning"></i>Быстрое добавление позиции
+        </h5>
+        
+        <form method="post" class="row g-3">
+            {% csrf_token %}
+            <input type="hidden" name="quick_add" value="1">
+            
+            <div class="col-md-6">
+                <label class="form-label text-light">Ключевое слово</label>
+                {{ quick_form.keyword }}
+            </div>
+            
+            <div class="col-md-4">
+                <label class="form-label text-light">Позиция</label>
+                {{ quick_form.position }}
+                <div class="form-text text-muted">0 = не найден</div>
+            </div>
+            
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-plus me-1"></i>Добавить
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Статистика -->
+<div class="row mb-4">
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="h1 mb-2 text-primary">{{ total_keywords }}</div>
+                <div class="text-light">Ключевых слов</div>
+                <small class="text-muted">{{ active_keywords }} активных</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="h1 mb-2 text-success">
+                    {% if product_stats.0.avg_position %}
+                        {{ product_stats.0.avg_position }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </div>
+                <div class="text-light">Лучшая средняя позиция</div>
+                <small class="text-muted">
+                    {% if product_stats.0 %}
+                        {{ product_stats.0.product.name|truncatechars:20 }}
+                    {% endif %}
+                </small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4 mb-3">
+        <div class="card border-0 h-100">
+            <div class="card-body text-center">
+                <div class="h1 mb-2 text-info">
+                    {% if product_stats %}
+                        {{ product_stats|length }}
+                    {% else %}
+                        0
+                    {% endif %}
+                </div>
+                <div class="text-light">Товаров с ключевиками</div>
+                <small class="text-muted">из {{ request.user.products.count }} всего</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Последние проверки -->
+<div class="row">
+    <div class="col-lg-8 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-history me-2 text-primary"></i>Последние проверки позиций
+                </h5>
+                
+                {% if recent_tracking %}
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Товар</th>
+                                <th>Ключевое слово</th>
+                                <th>Позиция</th>
+                                <th>Дата</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for track in recent_tracking %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'product_keywords' track.keyword.product.id %}" 
+                                       class="text-decoration-none text-light">
+                                        {{ track.keyword.product.name|truncatechars:25 }}
+                                    </a>
+                                    <br>
+                                    <small class="text-muted">{{ track.keyword.product.article }}</small>
+                                </td>
+                                <td>{{ track.keyword.keyword|truncatechars:25 }}</td>
+                                <td>
+                                    {% if track.position == 0 %}
+                                        <span class="badge bg-danger">Не найден</span>
+                                    {% elif track.position <= 10 %}
+                                        <span class="badge bg-success">{{ track.position }}</span>
+                                    {% elif track.position <= 50 %}
+                                        <span class="badge bg-info">{{ track.position }}</span>
+                                    {% elif track.position <= 100 %}
+                                        <span class="badge bg-warning">{{ track.position }}</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">{{ track.position }}</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ track.checked_at|date:"d.m.Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="fas fa-search fa-3x mb-3"></i>
+                    <p>Нет данных о проверках</p>
+                    <a href="{% url 'bulk_position_add' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить первые данные
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Топ товаров -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-3">
+                    <i class="fas fa-trophy me-2 text-warning"></i>Топ товаров по позициям
+                </h5>
+                
+                {% if product_stats %}
+                <div class="list-group">
+                    {% for stat in product_stats|slice:":5" %}
+                    <div class="list-group-item border-0 bg-transparent mb-2">
+                        <div class="d-flex w-100 justify-content-between align-items-center">
+                            <div class="me-3">
+                                <h6 class="mb-1">
+                                    <a href="{% url 'product_keywords' stat.product.id %}" 
+                                       class="text-decoration-none text-light">
+                                        {{ stat.product.name|truncatechars:20 }}
+                                    </a>
+                                </h6>
+                                <small class="text-muted">
+                                    {{ stat.keyword_count }} ключ. слов
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge 
+                                    {% if stat.avg_position <= 10 %}bg-success
+                                    {% elif stat.avg_position <= 50 %}bg-info
+                                    {% elif stat.avg_position <= 100 %}bg-warning
+                                    {% else %}bg-secondary{% endif %} 
+                                    fs-6">
+                                    {{ stat.avg_position }}
+                                </span>
+                                <div class="small text-muted mt-1">средняя</div>
+                            </div>
+                        </div>
+                        
+                        {% if stat.current_positions %}
+                        <div class="mt-2">
+                            {% for keyword, position in stat.current_positions|slice:":2" %}
+                            <span class="badge bg-dark me-1 mb-1">
+                                {{ keyword|truncatechars:15 }}
+                                <span class="ms-1 
+                                    {% if position <= 10 %}text-success
+                                    {% elif position <= 50 %}text-info
+                                    {% elif position <= 100 %}text-warning
+                                    {% else %}text-secondary{% endif %}">
+                                    {{ position }}
+                                </span>
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="text-center mt-3">
+                    <a href="{% url 'position_analytics' %}" class="btn btn-outline-primary btn-sm">
+                        <i class="fas fa-chart-bar me-1"></i>Вся аналитика
+                    </a>
+                </div>
+                
+                {% else %}
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-cubes fa-2x mb-3"></i>
+                    <p>Нет товаров с ключевыми словами</p>
+                    <a href="{% url 'product_list' %}" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus me-1"></i>Добавить товары
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Все товары с ключевыми словами -->
+<div class="card border-0 mt-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-cubes me-2 text-primary"></i>Все товары с ключевыми словами
+        </h5>
+        
+        <div class="row">
+            {% for stat in product_stats %}
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card bg-dark border-secondary h-100">
+                    <div class="card-body">
+                        <div class="d-flex align-items-center mb-3">
+                            {% if stat.product.image %}
+                                <img src="{{ stat.product.image.url }}" alt="{{ stat.product.name }}" 
+                                     class="rounded me-3" style="width: 50px; height: 50px; object-fit: cover;">
+                            {% else %}
+                                <div class="bg-secondary rounded d-flex align-items-center justify-content-center me-3" 
+                                     style="width: 50px; height: 50px;">
+                                    <i class="fas fa-image text-light"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <h6 class="mb-1">{{ stat.product.name|truncatechars:25 }}</h6>
+                                <small class="text-muted">Арт: {{ stat.product.article }}</small>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Средняя позиция:</span>
+                                <span class="badge 
+                                    {% if stat.avg_position <= 10 %}bg-success
+                                    {% elif stat.avg_position <= 50 %}bg-info
+                                    {% elif stat.avg_position <= 100 %}bg-warning
+                                    {% else %}bg-secondary{% endif %}">
+                                    {{ stat.avg_position }}
+                                </span>
+                            </div>
+                            
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Ключевых слов:</span>
+                                <span class="badge bg-dark">{{ stat.keyword_count }}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <a href="{% url 'product_keywords' stat.product.id %}" 
+                               class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-search me-1"></i>Управлять ключевыми словами
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12 text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>Нет товаров с ключевыми словами</h5>
+                <p class="text-muted mb-4">Добавьте ключевые слова для отслеживания позиций</p>
+                <a href="{% url 'product_list' %}" class="btn btn-primary">
+                    <i class="fas fa-cubes me-2"></i>Перейти к товарам
+                </a>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+// Автокомплит для быстрого добавления
+document.addEventListener('DOMContentLoaded', function() {
+    const keywordSelect = document.getElementById('quick-keyword-select');
+    const positionInput = document.querySelector('[name="position"]');
+    
+    // Фокус на поле позиции после выбора ключевого слова
+    if (keywordSelect) {
+        keywordSelect.addEventListener('change', function() {
+            if (positionInput) {
+                positionInput.focus();
+                positionInput.select();
+            }
+        });
+    }
+    
+    // Авто-отправка формы по Enter в поле позиции
+    if (positionInput) {
+        positionInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                this.form.submit();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

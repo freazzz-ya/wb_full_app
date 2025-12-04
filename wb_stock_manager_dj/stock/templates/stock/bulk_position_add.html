@@ -1,0 +1,212 @@
+{% extends 'stock/base.html' %}
+
+{% block title %}Массовое добавление позиций - WB Stock Manager{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex align-items-center">
+        <a href="{% url 'position_dashboard' %}" class="btn btn-outline-secondary me-3">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+        <h1 class="mb-0"><i class="fas fa-file-import me-2 text-info"></i>{{ page_title }}</h1>
+    </div>
+    <div>
+        <a href="{% url 'position_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-search me-1"></i>К позициям
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Левая колонка: Форма -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-4">
+                    <i class="fas fa-upload me-2 text-primary"></i>Добавление данных
+                </h5>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-light">Дата проверки</label>
+                        {{ form.date }}
+                        <div class="form-text text-muted">
+                            Дата, на которую указываются позиции
+                        </div>
+                        {% if form.date.errors %}
+                            <div class="text-danger small mt-1">{{ form.date.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label class="form-label text-light">Данные позиций</label>
+                        {{ form.positions_data }}
+                        <div class="form-text text-muted">
+                            Каждая строка в формате: <code>Артикул:Ключевое слово:Позиция</code>
+                        </div>
+                        {% if form.positions_data.errors %}
+                            <div class="text-danger small mt-1">{{ form.positions_data.errors }}</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary btn-lg">
+                            <i class="fas fa-upload me-2"></i>Загрузить данные
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Правая колонка: Инструкция -->
+    <div class="col-lg-6 mb-4">
+        <div class="card border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title mb-4">
+                    <i class="fas fa-info-circle me-2 text-warning"></i>Инструкция
+                </h5>
+                
+                <div class="mb-4">
+                    <h6 class="text-light mb-3">Формат строки:</h6>
+                    <div class="bg-dark rounded p-3 mb-3 border border-secondary">
+                        <code class="text-light">
+                            Артикул:Ключевое слово:Позиция
+                        </code>
+                    </div>
+                    <p class="text-muted small">
+                        Все поля разделяются двоеточием (<code>:</code>)
+                    </p>
+                </div>
+                
+                <div class="mb-4">
+                    <h6 class="text-light mb-3">Пример данных:</h6>
+                    <div class="bg-dark rounded p-3 border border-secondary">
+                        <pre class="text-light mb-0" style="font-size: 0.85rem;">
+123456789:чехол для айфона:15
+123456789:чехол:47
+987654321:наушники беспроводные:3
+987654321:наушники:28
+555555555:зарядное устройство:0</pre>
+                    </div>
+                </div>
+                
+                <div class="alert alert-dark border-warning">
+                    <h6 class="alert-heading text-warning">
+                        <i class="fas fa-lightbulb me-2"></i>Важно!
+                    </h6>
+                    <ul class="mb-0 text-light small">
+                        <li><strong>Артикул</strong> - артикул товара в Wildberries</li>
+                        <li><strong>Ключевое слово</strong> - слово или фраза для поиска</li>
+                        <li><strong>Позиция</strong> - место в поиске (1-1000), 0 = не найден</li>
+                        <li>Если товара с таким артикулом нет, он будет создан автоматически</li>
+                        <li>Пустые строки игнорируются</li>
+                        <li>Можно загружать тысячи строк за раз</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Информация о загрузке -->
+<div class="card border-0 mt-4">
+    <div class="card-body">
+        <h5 class="card-title mb-3">
+            <i class="fas fa-rocket me-2 text-success"></i>Быстрая загрузка из Excel/Google Таблиц
+        </h5>
+        
+        <div class="row">
+            <div class="col-md-8">
+                <p class="text-muted mb-3">
+                    Экспортируйте данные из таблицы в CSV или скопируйте столбцы:
+                </p>
+                
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark">
+                        <thead>
+                            <tr>
+                                <th>Столбец A</th>
+                                <th>Столбец B</th>
+                                <th>Столбец C</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Артикул</td>
+                                <td>Ключевое слово</td>
+                                <td>Позиция</td>
+                            </tr>
+                            <tr>
+                                <td>123456789</td>
+                                <td>чехол для айфона</td>
+                                <td>15</td>
+                            </tr>
+                            <tr>
+                                <td>123456789</td>
+                                <td>чехол</td>
+                                <td>47</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-3">
+                    <button class="btn btn-outline-primary" onclick="showExample()">
+                        <i class="fas fa-eye me-1"></i>Показать пример копирования
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="card bg-dark border-success">
+                    <div class="card-body">
+                        <h6 class="text-light mb-3">
+                            <i class="fas fa-bolt me-2 text-success"></i>Быстрый старт
+                        </h6>
+                        <ol class="text-light small mb-0">
+                            <li>Скопируйте 3 столбца из Excel</li>
+                            <li>Вставьте в поле слева</li>
+                            <li>Укажите дату проверки</li>
+                            <li>Нажмите "Загрузить данные"</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showExample() {
+    const exampleText = `123456789:чехол для айфона:15
+123456789:чехол:47
+987654321:наушники беспроводные:3
+987654321:наушники:28
+555555555:зарядное устройство:0`;
+    
+    document.getElementById('{{ form.positions_data.id_for_label }}').value = exampleText;
+    
+    const notification = document.createElement('div');
+    notification.className = 'alert alert-success alert-dismissible fade show mt-3';
+    notification.innerHTML = `
+        <i class="fas fa-check-circle me-2"></i>
+        Пример данных загружен в форму
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const cardBody = document.querySelector('.card-body');
+    cardBody.appendChild(notification);
+}
+
+// Автоматическая фокусировка на поле ввода
+document.addEventListener('DOMContentLoaded', function() {
+    const textarea = document.getElementById('{{ form.positions_data.id_for_label }}');
+    if (textarea) {
+        textarea.focus();
+    }
+});
+</script>
+{% endblock %}

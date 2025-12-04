@@ -471,3 +471,51 @@ class GoalNote(models.Model):
 
     def __str__(self):
         return f"{self.title} - {self.goal.title}"
+
+
+class ProductKeyword(models.Model):
+    """Ключевое слово для товара"""
+    product = models.ForeignKey(
+        Product, 
+        on_delete=models.CASCADE, 
+        related_name='keywords'
+    )
+    keyword = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ['product', 'keyword']
+
+    def __str__(self):
+        return f"{self.keyword} - {self.product.name}"
+
+    @property
+    def current_position(self):
+        latest = self.positions.order_by('-created_at').first()  # Изменено с '-date' на '-created_at'
+        return latest.position if latest else None
+
+    @property
+    def last_checked(self):
+        latest = self.positions.order_by('-created_at').first()  # Изменено с '-date' на '-created_at'
+        return latest.created_at if latest else None
+
+
+class ProductPosition(models.Model):
+    """Позиция товара по ключевому слову"""
+    keyword = models.ForeignKey(
+        ProductKeyword, 
+        on_delete=models.CASCADE, 
+        related_name='positions'
+    )
+    position = models.IntegerField()  # 0 = не найден
+    created_at = models.DateTimeField(auto_now_add=True)  # Автоматическая дата
+    
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.keyword.keyword}: {self.position} ({self.created_at.date()})"
+    
+    @property
+    def date(self):  # Свойство для обратной совместимости
+        return self.created_at.date()
